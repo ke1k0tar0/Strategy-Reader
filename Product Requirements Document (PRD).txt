@@ -1,0 +1,546 @@
+# Product Requirements Document (PRD)
+
+## Project Name
+
+Trading Strategy Optimization Recommendation Engine
+
+---
+
+# 1. Overview
+
+## Objective
+
+Build a web-based system that reads trading strategy experiment data from Google Sheets, analyzes historical parameter changes and their outcomes, and recommends the currently optimal parameter set for a strategy under specific market conditions.
+
+The system is intended to function as a lightweight quant-research assistant that continuously evaluates historical strategy tuning experiments and identifies parameter combinations associated with higher profitability and better execution quality.
+
+This project is designed for rapid AI-assisted development ("vibe-coding"), so the architecture and implementation should prioritize:
+
+* simplicity
+* modularity
+* readability
+* deterministic logic
+* AI-friendly code structure
+
+The initial version should avoid unnecessary complexity such as distributed systems, deep ML pipelines, or database infrastructure.
+
+---
+
+# 2. Core Problem
+
+Trading strategies are manually tuned over time by adjusting parameters and observing outcomes.
+
+Currently:
+
+* parameter experiments are stored in Google Sheets
+* results are manually reviewed
+* no automated optimization exists
+* difficult to identify the best parameter combinations
+* difficult to understand which changes improved performance
+
+The system should automate this analysis process.
+
+---
+
+# 3. Product Goals
+
+## Primary Goals
+
+1. Read strategy experiment data from Google Sheets
+2. Parse parameter snapshots from JSON
+3. Analyze historical parameter performance
+4. Detect high-performing parameter combinations
+5. Recommend the best current parameter configuration
+6. Filter recommendations by strategy and market condition
+7. Produce deterministic optimization output
+
+---
+
+# 4. Non-Goals
+
+The MVP should NOT include:
+
+* brokerage integrations
+* live trading execution
+* automated order placement
+* deep learning
+* reinforcement learning
+* distributed systems
+* database infrastructure
+* user authentication
+* multi-user support
+* real-time websocket systems
+* advanced backtesting engine
+
+---
+
+# 5. Data Source
+
+## Google Sheets
+
+The system uses Google Sheets as the only data source.
+
+Data is manually maintained by strategy researchers.
+
+The backend reads sheet data periodically or on-demand.
+
+---
+
+# 6. Google Sheet Structure
+
+Each row represents one strategy experiment or optimization attempt.
+
+## Columns
+
+| Column                           | Description                        |
+| -------------------------------- | ---------------------------------- |
+| Date                             | Date of experiment                 |
+| Scope                            | Strategy identifier                |
+| Parameter Set (JSON snapshot)    | Strategy parameters in JSON format |
+| Hypothesis                       | Reason for parameter change        |
+| Change                           | Description of modifications       |
+| Stop conditions (capital safety) | Risk management constraints        |
+| Success metric                   | Expected optimization target       |
+| Duration                         | Trading session duration           |
+| Market Conditions (vol regime)   | Market regime classification       |
+| Fills                            | Fill percentage                    |
+| PnL                              | Profit and loss result             |
+| Top 3 Gate Reasons               | Main execution blockers/reasons    |
+| Verdict                          | Final experiment evaluation        |
+| Notes                            | Additional comments                |
+
+---
+
+# 7. Functional Requirements
+
+# 7.1 Google Sheets Reader
+
+## Requirements
+
+* Connect to Google Sheets API
+* Read rows from configured sheet
+* Convert rows into structured objects
+* Handle missing or malformed rows gracefully
+
+## Expected Behavior
+
+The system should:
+
+* fetch all rows
+* normalize column names
+* return structured strategy experiment records
+
+---
+
+# 7.2 Parameter JSON Parser
+
+## Requirements
+
+The system must:
+
+* parse the "Parameter Set (JSON snapshot)" column
+* flatten parameters into machine-readable fields
+* support nested JSON structures if needed
+
+## Example Input
+
+```json
+{
+  "min_ccs": 0.55,
+  "max_ccs": 0.67,
+  "entry_cap": 242
+}
+```
+
+## Example Output
+
+```json
+{
+  "min_ccs": 0.55,
+  "max_ccs": 0.67,
+  "entry_cap": 242
+}
+```
+
+## Validation Rules
+
+* invalid JSON should not crash the system
+* malformed rows should be skipped with warnings
+* parameter keys should remain consistent
+
+---
+
+# 7.3 Strategy Filtering
+
+## Requirements
+
+The system must support filtering by:
+
+* strategy (`Scope`)
+* market condition
+* date range
+* verdict
+* minimum PnL
+* minimum fills
+
+---
+
+# 7.4 Optimization Engine
+
+## MVP Optimization Logic
+
+The initial version should use deterministic statistical analysis only.
+
+No AI model training is required initially.
+
+## Required Logic
+
+The engine should:
+
+* identify profitable parameter combinations
+* rank experiments by weighted score
+* detect recurring successful parameter ranges
+* calculate average performance per parameter set
+* filter out poor-performing configurations
+
+---
+
+# 7.5 Scoring Engine
+
+## Purpose
+
+Convert experiment outcomes into a comparable optimization score.
+
+## Example Formula
+
+```text
+score =
+(PnL * 0.5)
++ (Fills * 0.3)
+- (RiskPenalty * 0.2)
+```
+
+## Notes
+
+Scoring formula should:
+
+* be configurable
+* support future weighting changes
+* remain deterministic
+
+---
+
+# 7.6 Recommendation Engine
+
+## Requirements
+
+The system should generate:
+
+* recommended parameter set
+* confidence score
+* expected PnL
+* expected fill rate
+* supporting historical evidence
+
+## Example Output
+
+```json
+{
+  "strategy": "1H Horizon",
+  "marketCondition": "Bearish",
+  "recommendedParameters": {
+    "min_ccs": 0.60,
+    "max_ccs": 0.65
+  },
+  "confidence": 0.78,
+  "expectedPnL": 3.1,
+  "expectedFillRate": 87
+}
+```
+
+---
+
+# 7.7 Explanation Engine
+
+## Purpose
+
+Explain WHY a parameter set is recommended.
+
+## Example
+
+```text
+This parameter range historically produced higher fill rates and reduced entry rejection under bearish market conditions.
+```
+
+This can initially be template-based and deterministic.
+
+No LLM integration required for MVP.
+
+---
+
+# 8. Technical Stack
+
+## Frontend
+
+* Next.js
+* React
+* TypeScript
+
+---
+
+## Backend
+
+* Node.js
+* TypeScript
+* Express.js or Next.js API routes
+
+---
+
+## Data Processing
+
+* Native JavaScript/TypeScript
+* Optional:
+
+  * Danfo.js
+  * simple-statistics
+
+---
+
+## External APIs
+
+* Google Sheets API
+
+---
+
+# 9. Suggested Architecture
+
+```text
+Frontend Dashboard
+        ↓
+API Layer
+        ↓
+Optimization Engine
+        ↓
+Google Sheets Reader
+        ↓
+Google Sheets
+```
+
+---
+
+# 10. Suggested Project Structure
+
+```text
+src/
+ ├── sheets/
+ │    └── googleSheets.ts
+ │
+ ├── parsers/
+ │    └── parameterParser.ts
+ │
+ ├── optimization/
+ │    ├── scoring.ts
+ │    ├── filtering.ts
+ │    ├── ranking.ts
+ │    ├── recommendation.ts
+ │    └── explanations.ts
+ │
+ ├── api/
+ │    └── recommendations.ts
+ │
+ ├── types/
+ │    └── strategy.ts
+ │
+ └── utils/
+```
+
+---
+
+# 11. API Requirements
+
+# GET `/api/recommendation`
+
+## Query Parameters
+
+| Parameter       | Required |
+| --------------- | -------- |
+| strategy        | yes      |
+| marketCondition | optional |
+| minPnl          | optional |
+
+---
+
+## Example Request
+
+```http
+GET /api/recommendation?strategy=1H%20Horizon
+```
+
+---
+
+## Example Response
+
+```json
+{
+  "strategy": "1H Horizon",
+  "marketCondition": "Bearish",
+  "recommendedParameters": {
+    "min_ccs": 0.60,
+    "max_ccs": 0.65
+  },
+  "confidence": 0.78,
+  "expectedPnL": 3.1,
+  "expectedFillRate": 87,
+  "sampleSize": 42
+}
+```
+
+---
+
+# 12. Frontend Requirements
+
+## Dashboard Features
+
+### Required
+
+* strategy selector
+* market condition filter
+* current best parameter display
+* confidence score display
+* historical result table
+
+---
+
+## Optional
+
+* parameter heatmaps
+* charts
+* parameter importance graphs
+* trend analysis
+
+---
+
+# 13. Data Assumptions
+
+## Assumptions
+
+* Google Sheet structure remains stable
+* parameter JSON remains consistent
+* PnL values are numeric
+* fills are percentages
+* verdicts are manually assigned
+
+---
+
+# 14. Error Handling
+
+The system must:
+
+* handle invalid JSON safely
+* skip malformed rows
+* continue processing partial data
+* log parsing failures
+* avoid API crashes
+
+---
+
+# 15. Performance Requirements
+
+## MVP Expectations
+
+* support up to ~10,000 rows
+* recommendation generation under 3 seconds
+* lightweight memory usage
+* no heavy computation
+
+---
+
+# 16. Security Requirements
+
+## MVP
+
+* Google Sheets credentials stored securely
+* no credentials exposed to frontend
+* environment variables required
+
+---
+
+# 17. Future Enhancements (Not MVP)
+
+Possible future upgrades:
+
+* PostgreSQL
+* ML prediction models
+* Bayesian optimization
+* automated backtesting
+* live strategy adaptation
+* multi-strategy comparison
+* reinforcement learning
+* vector embeddings for notes analysis
+* AI-generated optimization explanations
+
+---
+
+# 18. Development Priorities
+
+## Phase 1 — Core MVP
+
+Priority:
+
+1. Google Sheets reader
+2. JSON parsing
+3. Filtering
+4. Scoring engine
+5. Recommendation generation
+6. API endpoint
+
+---
+
+## Phase 2 — Dashboard
+
+Priority:
+
+1. Visualization
+2. Charts
+3. Historical analytics
+4. Parameter comparison
+
+---
+
+## Phase 3 — Advanced Optimization
+
+Priority:
+
+1. Statistical modeling
+2. ML predictions
+3. Bayesian search
+4. Automated parameter exploration
+
+---
+
+# 19. Success Criteria
+
+The MVP is considered successful if:
+
+* system can read Google Sheets reliably
+* recommendations are generated automatically
+* recommendations are explainable
+* parameter ranking is deterministic
+* researchers can identify optimal configurations faster than manual review
+
+---
+
+# 20. Key Engineering Principles
+
+## Important
+
+The project should prioritize:
+
+* simplicity
+* deterministic logic
+* modularity
+* AI-friendly code organization
+* readability
+* extensibility
+
+Avoid premature optimization and unnecessary abstraction.
