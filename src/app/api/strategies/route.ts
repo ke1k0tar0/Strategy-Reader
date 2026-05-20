@@ -72,6 +72,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
-    return handleError(error);
+    const errorResponse = handleError(error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: errorResponse.message,
+        code: errorResponse.code,
+      },
+      { status: errorResponse.statusCode },
+    );
   }
 }
