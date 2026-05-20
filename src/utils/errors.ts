@@ -51,10 +51,22 @@ export function logger(
   const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
 
   if (level === "error") {
-    console.error(prefix, message, data);
+    if (data !== undefined) {
+      console.error(prefix, message, data);
+    } else {
+      console.error(prefix, message);
+    }
   } else if (level === "warn") {
-    console.warn(prefix, message, data);
+    if (data !== undefined) {
+      console.warn(prefix, message, data);
+    } else {
+      console.warn(prefix, message);
+    }
   } else {
-    console.log(prefix, message, data);
+    if (data !== undefined) {
+      console.log(prefix, message, data);
+    } else {
+      console.log(prefix, message);
+    }
   }
 }

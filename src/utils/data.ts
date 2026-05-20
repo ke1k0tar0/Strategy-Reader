@@ -60,21 +60,38 @@ export function convertRawRowToExperiment(
   rowIndex: number,
 ): StrategyExperiment | null {
   try {
-    // Extract values using column mapping
-    const date = String(row[columnMapping["date"]] || "").trim();
-    const scope = String(row[columnMapping["scope"]] || "").trim();
-    const parameterSetStr = String(
-      row[columnMapping["parameterSet"]] || "{}",
-    ).trim();
-    const fills = parseFloat(String(row[columnMapping["fills"]] || "0"));
-    const pnl = parseFloat(String(row[columnMapping["pnl"]] || "0"));
+    // Extract values using column mapping keys safely
+    const dateKey = columnMapping["date"];
+    const scopeKey = columnMapping["scope"];
+    const parameterSetKey = columnMapping["parameterSet"];
+    const fillsKey = columnMapping["fills"];
+    const pnlKey = columnMapping["pnl"];
 
-    // Validate required fields
-    if (!date || !scope) {
+    if (!dateKey || !scopeKey || !parameterSetKey || !fillsKey || !pnlKey) {
       return null;
     }
 
-    const parameterSet = parseJSON(parameterSetStr);
+    const date = String(row[dateKey] || "").trim();
+    const scope = String(row[scopeKey] || "").trim();
+    const parameterSetStr = String(row[parameterSetKey] || "{}").trim();
+
+    // Clean percentage signs or currency symbols before computing floats
+    const rawFillsStr = String(row[fillsKey] || "0")
+      .replace(/%/g, "")
+      .trim();
+    const rawPnlStr = String(row[pnlKey] || "0")
+      .replace(/[^0-9.-]/g, "")
+      .trim();
+
+    const fills = parseFloat(rawFillsStr);
+    const pnl = parseFloat(rawPnlStr);
+
+    // Validate presence of essential row identifiers
+    if (!date || !scope || isNaN(fills) || isNaN(pnl)) {
+      return null;
+    }
+
+    const parameterSet = parseJSON<Record<string, unknown>>(parameterSetStr);
     if (!parameterSet) {
       return null;
     }
@@ -83,17 +100,19 @@ export function convertRawRowToExperiment(
       date,
       scope,
       parameterSet,
-      hypothesis: String(row[columnMapping["hypothesis"]] || ""),
-      change: String(row[columnMapping["change"]] || ""),
-      stopConditions: String(row[columnMapping["stopConditions"]] || ""),
-      successMetric: String(row[columnMapping["successMetric"]] || ""),
-      duration: String(row[columnMapping["duration"]] || ""),
-      marketConditions: String(row[columnMapping["marketConditions"]] || ""),
+      hypothesis: String(row[columnMapping["hypothesis"] || ""] || ""),
+      change: String(row[columnMapping["change"] || ""] || ""),
+      stopConditions: String(row[columnMapping["stopConditions"] || ""] || ""),
+      successMetric: String(row[columnMapping["successMetric"] || ""] || ""),
+      duration: String(row[columnMapping["duration"] || ""] || ""),
+      marketConditions: String(
+        row[columnMapping["marketConditions"] || ""] || "",
+      ),
       fills,
       pnl,
-      topGateReasons: String(row[columnMapping["topGateReasons"]] || ""),
-      verdict: String(row[columnMapping["verdict"]] || ""),
-      notes: String(row[columnMapping["notes"]] || ""),
+      topGateReasons: String(row[columnMapping["topGateReasons"] || ""] || ""),
+      verdict: String(row[columnMapping["verdict"] || ""] || ""),
+      notes: String(row[columnMapping["notes"] || ""] || ""),
       rowIndex,
       rawRow: row,
     };

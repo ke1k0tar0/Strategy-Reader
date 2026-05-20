@@ -8,14 +8,9 @@ import { parseParameterJSON } from "@/src/parsers/parameterParser";
 import {
   convertRawRowToExperiment,
   normalizeExperiment,
-  generateExperimentId,
 } from "@/src/utils/data";
 import { scoreExperiments } from "@/src/optimization/scoring";
-import {
-  NormalizedExperiment,
-  SheetData,
-  StrategyExperiment,
-} from "@/src/types/strategy";
+import { NormalizedExperiment, StrategyExperiment } from "@/src/types/strategy";
 import { logger, AppError } from "@/src/utils/errors";
 
 /**
@@ -35,12 +30,13 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
     const errors: Array<{ rowIndex: number; error: string }> = [];
 
     rawRows.forEach((row, index) => {
+      const displayRowIndex = index + 2; // Compensate for header mapping offsets
       try {
         const exp = convertRawRowToExperiment(row, columnMapping, index);
 
         if (exp) {
-          // Parse parameter JSON
-          const paramSetStr = row[columnMapping["parameterSet"]] as string;
+          const paramSetKey = columnMapping["parameterSet"];
+          const paramSetStr = paramSetKey ? (row[paramSetKey] as string) : "";
           const paramSet = parseParameterJSON(paramSetStr);
 
           if (paramSet) {
@@ -48,19 +44,21 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
             experiments.push(exp);
           } else {
             errors.push({
-              rowIndex: index + 2, // +2 for 1-based and header row
-              error: "Invalid parameter JSON",
+              rowIndex: displayRowIndex,
+              error:
+                "Invalid parameter JSON snapshot configuration string format",
             });
           }
         } else {
           errors.push({
-            rowIndex: index + 2,
-            error: "Missing required fields (date, scope, fills, pnl)",
+            rowIndex: displayRowIndex,
+            error:
+              "Missing required fields or layout structure mismatch (date, scope, fills, pnl)",
           });
         }
       } catch (error) {
         errors.push({
-          rowIndex: index + 2,
+          rowIndex: displayRowIndex,
           error: String(error),
         });
       }
@@ -69,7 +67,7 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
     if (errors.length > 0) {
       logger(
         "warn",
-        `Failed to parse ${errors.length} rows`,
+        `Failed to parse ${errors.length} total rows in spreadsheet mapping sequence`,
         errors.slice(0, 5),
       );
     }
@@ -88,9 +86,7 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
     const scored = scoreExperiments(experiments as NormalizedExperiment[]);
 
     // Step 4: Normalize with IDs
-    const normalized = scored.map((exp, index) =>
-      normalizeExperiment(exp, exp.score),
-    );
+    const normalized = scored.map((exp) => normalizeExperiment(exp, exp.score));
 
     logger("info", `Loaded and normalized ${normalized.length} experiments`);
 
