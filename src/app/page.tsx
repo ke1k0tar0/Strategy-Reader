@@ -31,9 +31,16 @@ export default function Dashboard() {
   useEffect(() => {
     const loadMetadata = async () => {
       try {
-        // For now, we'll use a default list
-        // In production, you'd fetch this from the API
-        setStrategies(["1H Horizon", "Bearish Strategy", "Bullish Strategy"]);
+        // Fetch strategies from API
+        const strategiesResponse = await fetch("/api/strategies");
+        if (!strategiesResponse.ok) {
+          throw new Error("Failed to fetch strategies");
+        }
+
+        const strategiesData = await strategiesResponse.json();
+        setStrategies(strategiesData.data.strategies);
+
+        // Set predefined market conditions
         setMarketConditions([
           "Bearish",
           "Bullish",
