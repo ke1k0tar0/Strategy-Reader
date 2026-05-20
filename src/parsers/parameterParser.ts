@@ -4,22 +4,37 @@
  */
 
 import { ParameterSet } from "@/src/types/strategy";
-import { parseJSON, validateNumericField } from "@/src/utils/data";
-import { logger, AppError } from "@/src/utils/errors";
+import { parseJSON } from "@/src/utils/data";
+import { logger } from "@/src/utils/errors";
 
 /**
  * Validate and parse parameter JSON
  */
 export function parseParameterJSON(jsonString: string): ParameterSet | null {
   try {
-    if (!jsonString || jsonString.trim() === "") {
+    if (!jsonString || String(jsonString).trim() === "") {
       return null;
     }
 
-    const parsed = parseJSON<Record<string, unknown>>(jsonString);
+    // Clean common Google Sheets formatting mistakes
+    let sanitized = String(jsonString)
+      .replace(/[\u2018\u2019]/g, "'") // convert smart single quotes to straight
+      .replace(/[\u201C\u201D]/g, '"') // convert smart double quotes to straight
+      .trim();
+
+    // If user mistakenly used single quotes exclusively, convert to double quotes
+    if (sanitized.includes("'") && !sanitized.includes('"')) {
+      sanitized = sanitized.replace(/'/g, '"');
+    }
+
+    let parsed = parseJSON<Record<string, unknown>>(sanitized);
+
+    // Handle accidental double-stringification
+    if (typeof parsed === "string") {
+      parsed = parseJSON<Record<string, unknown>>(parsed);
+    }
 
     if (!parsed || typeof parsed !== "object") {
-      logger("warn", "Invalid parameter JSON: not an object", { jsonString });
       return null;
     }
 
@@ -27,24 +42,17 @@ export function parseParameterJSON(jsonString: string): ParameterSet | null {
     const parameterSet: ParameterSet = {};
 
     Object.entries(parsed).forEach(([key, value]) => {
-      // Allow numbers, strings, and booleans
       if (
         typeof value === "number" ||
         typeof value === "string" ||
         typeof value === "boolean"
       ) {
         parameterSet[key] = value;
-      } else {
-        logger("warn", `Skipping parameter with invalid type`, {
-          key,
-          valueType: typeof value,
-        });
       }
     });
 
     return Object.keys(parameterSet).length > 0 ? parameterSet : null;
   } catch (error) {
-    logger("warn", "Failed to parse parameter JSON", { jsonString, error });
     return null;
   }
 }

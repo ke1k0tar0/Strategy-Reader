@@ -30,13 +30,26 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
     const errors: Array<{ rowIndex: number; error: string }> = [];
 
     rawRows.forEach((row, index) => {
-      const displayRowIndex = index + 2; // Compensate for header mapping offsets
+      const displayRowIndex = index + 2; // +2 for 1-based index and header row
+
+      // 1. Silently skip entirely blank spreadsheet rows
+      const isEmpty = Object.values(row).every(
+        (val) => !val || String(val).trim() === "",
+      );
+      if (isEmpty) return;
+
+      // 2. Silently skip rows missing a primary Date key (like visual dividers)
+      const dateKey = columnMapping["date"];
+      if (!dateKey || !row[dateKey] || String(row[dateKey]).trim() === "")
+        return;
+
       try {
         const exp = convertRawRowToExperiment(row, columnMapping, index);
 
         if (exp) {
+          // Parse parameter JSON independently
           const paramSetKey = columnMapping["parameterSet"];
-          const paramSetStr = paramSetKey ? (row[paramSetKey] as string) : "";
+          const paramSetStr = paramSetKey ? String(row[paramSetKey] || "") : "";
           const paramSet = parseParameterJSON(paramSetStr);
 
           if (paramSet) {
@@ -45,15 +58,14 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
           } else {
             errors.push({
               rowIndex: displayRowIndex,
-              error:
-                "Invalid parameter JSON snapshot configuration string format",
+              error: `Invalid parameter JSON snapshot configuration. Value: ${paramSetStr.substring(0, 40)}...`,
             });
           }
         } else {
           errors.push({
             rowIndex: displayRowIndex,
             error:
-              "Missing required fields or layout structure mismatch (date, scope, fills, pnl)",
+              "Missing required fields or layout structure mismatch (Fills or PnL)",
           });
         }
       } catch (error) {
@@ -67,7 +79,7 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
     if (errors.length > 0) {
       logger(
         "warn",
-        `Failed to parse ${errors.length} total rows in spreadsheet mapping sequence`,
+        `Failed to parse ${errors.length} rows due to format mismatch`,
         errors.slice(0, 5),
       );
     }

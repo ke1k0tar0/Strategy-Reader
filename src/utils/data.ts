@@ -60,41 +60,45 @@ export function convertRawRowToExperiment(
   rowIndex: number,
 ): StrategyExperiment | null {
   try {
-    // Extract values using column mapping keys safely
+    // Extract values using column mapping
     const dateKey = columnMapping["date"];
     const scopeKey = columnMapping["scope"];
-    const parameterSetKey = columnMapping["parameterSet"];
     const fillsKey = columnMapping["fills"];
     const pnlKey = columnMapping["pnl"];
 
-    if (!dateKey || !scopeKey || !parameterSetKey || !fillsKey || !pnlKey) {
+    if (!dateKey || !scopeKey || !fillsKey || !pnlKey) {
       return null;
     }
 
     const date = String(row[dateKey] || "").trim();
     const scope = String(row[scopeKey] || "").trim();
-    const parameterSetStr = String(row[parameterSetKey] || "{}").trim();
 
-    // Clean percentage signs or currency symbols before computing floats
-    const rawFillsStr = String(row[fillsKey] || "0")
+    // Safety check for primary identifiers
+    if (!date || !scope) {
+      return null;
+    }
+
+    // Smart numeric string parsing (strips currency/percent symbols, handles EU commas)
+    let rawFillsStr = String(row[fillsKey] || "0")
       .replace(/%/g, "")
       .trim();
-    const rawPnlStr = String(row[pnlKey] || "0")
-      .replace(/[^0-9.-]/g, "")
-      .trim();
+    if (rawFillsStr.includes(",") && !rawFillsStr.includes(".")) {
+      rawFillsStr = rawFillsStr.replace(",", ".");
+    }
+    const fills = parseFloat(rawFillsStr.replace(/[^0-9.-]/g, ""));
 
-    const fills = parseFloat(rawFillsStr);
-    const pnl = parseFloat(rawPnlStr);
+    let rawPnlStr = String(row[pnlKey] || "0").trim();
+    if (rawPnlStr.includes(",") && !rawPnlStr.includes(".")) {
+      rawPnlStr = rawPnlStr.replace(",", ".");
+    }
+    const pnl = parseFloat(rawPnlStr.replace(/[^0-9.-]/g, ""));
 
-    // Validate presence of essential row identifiers
-    if (!date || !scope || isNaN(fills) || isNaN(pnl)) {
+    if (isNaN(fills) || isNaN(pnl)) {
       return null;
     }
 
-    const parameterSet = parseJSON<Record<string, unknown>>(parameterSetStr);
-    if (!parameterSet) {
-      return null;
-    }
+    // Dummy assign - actual deep parsing handled safely in dataLoader.ts
+    const parameterSet = {};
 
     return {
       date,
