@@ -17,6 +17,7 @@ export function FilterControls({
   loading = false,
 }: FilterControlsProps) {
   const [availableStrategies, setAvailableStrategies] = useState<string[]>([]);
+  const [customStrategies, setCustomStrategies] = useState<string[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<string>("");
   const [selectedMarketCondition, setSelectedMarketCondition] =
     useState<string>("");
@@ -28,8 +29,10 @@ export function FilterControls({
   // Initialize and load custom strategies from localStorage
   useEffect(() => {
     const savedCustom = localStorage.getItem("custom_strategies");
-    const customStrategies = savedCustom ? JSON.parse(savedCustom) : [];
-    const combined = Array.from(new Set([...strategies, ...customStrategies]));
+    const parsedCustom = savedCustom ? JSON.parse(savedCustom) : [];
+
+    setCustomStrategies(parsedCustom);
+    const combined = Array.from(new Set([...strategies, ...parsedCustom]));
 
     setAvailableStrategies(combined);
     if (!selectedStrategy && combined.length > 0) {
@@ -39,25 +42,39 @@ export function FilterControls({
 
   const handleAddStrategy = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStrategyName.trim()) return;
-
     const name = newStrategyName.trim();
-    const updated = Array.from(new Set([...availableStrategies, name]));
+    if (!name) return;
+
+    const updatedCustom = Array.from(new Set([...customStrategies, name]));
 
     // Update local state and storage
-    setAvailableStrategies(updated);
-    const savedCustom = localStorage.getItem("custom_strategies");
-    const customStrategies = savedCustom ? JSON.parse(savedCustom) : [];
-    if (!customStrategies.includes(name)) {
-      localStorage.setItem(
-        "custom_strategies",
-        JSON.stringify([...customStrategies, name]),
-      );
-    }
+    localStorage.setItem("custom_strategies", JSON.stringify(updatedCustom));
+    setCustomStrategies(updatedCustom);
 
+    const combined = Array.from(new Set([...strategies, ...updatedCustom]));
+    setAvailableStrategies(combined);
     setSelectedStrategy(name);
+
     setNewStrategyName("");
     setIsAddingNew(false);
+  };
+
+  const handleRemoveStrategy = () => {
+    if (!selectedStrategy) return;
+
+    const updatedCustom = customStrategies.filter(
+      (s) => s !== selectedStrategy,
+    );
+
+    // Update local state and storage
+    localStorage.setItem("custom_strategies", JSON.stringify(updatedCustom));
+    setCustomStrategies(updatedCustom);
+
+    const combined = Array.from(new Set([...strategies, ...updatedCustom]));
+    setAvailableStrategies(combined);
+
+    // Reset selection to the first available strategy to avoid breaking the UI
+    setSelectedStrategy(combined[0] || "");
   };
 
   const handleFilter = () => {
@@ -114,9 +131,36 @@ export function FilterControls({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Strategy Selector */}
         <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-            Target Strategy <span className="text-red-400">*</span>
-          </label>
+          <div className="flex justify-between items-end mb-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Target Strategy <span className="text-red-400">*</span>
+            </label>
+
+            {/* Remove Custom Strategy Button (Only visible if the selected strategy is custom) */}
+            {customStrategies.includes(selectedStrategy) && (
+              <button
+                onClick={handleRemoveStrategy}
+                className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1"
+                title="Remove this custom strategy"
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                Delete Custom
+              </button>
+            )}
+          </div>
+
           <select
             value={selectedStrategy}
             onChange={(e) => setSelectedStrategy(e.target.value)}
@@ -128,7 +172,8 @@ export function FilterControls({
             </option>
             {availableStrategies.map((strategy) => (
               <option key={strategy} value={strategy}>
-                {strategy}
+                {strategy}{" "}
+                {customStrategies.includes(strategy) ? " (Custom)" : ""}
               </option>
             ))}
           </select>
