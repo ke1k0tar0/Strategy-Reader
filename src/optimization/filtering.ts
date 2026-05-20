@@ -19,19 +19,31 @@ export function filterExperiments(
 
   logger("info", `Filtered by strategy: ${filtered.length} experiments`);
 
-  // Filter by exact date
+  // Advanced Date Filter (Handles DD/MM/YYYY, MM/DD/YYYY, and YYYY-MM-DD gracefully)
   if (options.date) {
-    filtered = filtered.filter((exp) => {
-      // Direct string match first (in case Google Sheets sends '20-May')
-      if (exp.date === options.date) return true;
+    const [year, month, day] = options.date.split("-");
+    const mInt = parseInt(month, 10).toString(); // Removes leading zero
+    const dInt = parseInt(day, 10).toString(); // Removes leading zero
 
-      // Fallback to strict ISO Date parsing comparison
+    const possibleFormats = [
+      options.date, // YYYY-MM-DD
+      `${day}/${month}/${year}`, // DD/MM/YYYY (Standard Sheet format)
+      `${month}/${day}/${year}`, // MM/DD/YYYY
+      `${dInt}/${mInt}/${year}`, // D/M/YYYY
+      `${mInt}/${dInt}/${year}`, // M/D/YYYY
+      `${year}/${month}/${day}`, // YYYY/MM/DD
+    ];
+
+    filtered = filtered.filter((exp) => {
+      const sheetDate = exp.date.trim();
+
+      // Match against the net of format combinations
+      if (possibleFormats.includes(sheetDate)) return true;
+
+      // Strict fallback parser for native JS Date types
       try {
-        const expDate = new Date(exp.date).toISOString().split("T")[0];
-        const filterDate = new Date(options.date as string)
-          .toISOString()
-          .split("T")[0];
-        return expDate === filterDate;
+        const expDateIso = new Date(sheetDate).toISOString().split("T")[0];
+        return expDateIso === options.date;
       } catch {
         return false;
       }

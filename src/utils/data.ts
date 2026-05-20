@@ -60,23 +60,32 @@ export function convertRawRowToExperiment(
 
     if (!date || !scope) return null;
 
-    let rawFillsStr = String(row[fillsKey] || "0")
+    // Fast-fail gracefully if the cells use dash placeholders or are completely empty
+    let rawFillsStr = String(row[fillsKey] || "")
       .replace(/%/g, "")
       .trim();
-    if (rawFillsStr.includes(",") && !rawFillsStr.includes(".")) {
-      rawFillsStr = rawFillsStr.replace(",", ".");
-    }
-    const fills = parseFloat(rawFillsStr.replace(/[^0-9.-]/g, ""));
+    let rawPnlStr = String(row[pnlKey] || "").trim();
 
-    let rawPnlStr = String(row[pnlKey] || "0").trim();
-    if (rawPnlStr.includes(",") && !rawPnlStr.includes(".")) {
-      rawPnlStr = rawPnlStr.replace(",", ".");
+    if (
+      !rawFillsStr ||
+      rawFillsStr === "-" ||
+      !rawPnlStr ||
+      rawPnlStr === "-"
+    ) {
+      return null;
     }
+
+    if (rawFillsStr.includes(",") && !rawFillsStr.includes("."))
+      rawFillsStr = rawFillsStr.replace(",", ".");
+    if (rawPnlStr.includes(",") && !rawPnlStr.includes("."))
+      rawPnlStr = rawPnlStr.replace(",", ".");
+
+    const fills = parseFloat(rawFillsStr.replace(/[^0-9.-]/g, ""));
     const pnl = parseFloat(rawPnlStr.replace(/[^0-9.-]/g, ""));
 
     if (isNaN(fills) || isNaN(pnl)) return null;
 
-    const parameterSet = {};
+    const parameterSet = {}; // Real parsing happens in dataLoader
 
     return {
       date,

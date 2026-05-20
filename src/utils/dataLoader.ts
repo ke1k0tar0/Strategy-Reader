@@ -25,21 +25,31 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
     rawRows.forEach((row, index) => {
       const displayRowIndex = index + 2;
 
+      // 1. Silently skip rows that are completely empty
       const isEmpty = Object.values(row).every(
         (val) => !val || String(val).trim() === "",
       );
       if (isEmpty) return;
 
+      // 2. Silently skip rows where the core identifiers or JSON are intentionally left blank
       const dateKey = columnMapping["date"];
-      if (!dateKey || !row[dateKey] || String(row[dateKey]).trim() === "")
+      const scopeKey = columnMapping["scope"];
+      const paramSetKey = columnMapping["parameterSet"];
+
+      const dateStr = dateKey ? String(row[dateKey] || "").trim() : "";
+      const scopeStr = scopeKey ? String(row[scopeKey] || "").trim() : "";
+      const paramSetStr = paramSetKey
+        ? String(row[paramSetKey] || "").trim()
+        : "";
+
+      if (!dateStr || !scopeStr || !paramSetStr || paramSetStr === "-") {
         return;
+      }
 
       try {
         const exp = convertRawRowToExperiment(row, columnMapping, index);
 
         if (exp) {
-          const paramSetKey = columnMapping["parameterSet"];
-          const paramSetStr = paramSetKey ? String(row[paramSetKey] || "") : "";
           const paramSet = parseParameterJSON(paramSetStr);
 
           if (paramSet) {
@@ -48,16 +58,12 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
           } else {
             errors.push({
               rowIndex: displayRowIndex,
-              error: `Invalid parameter JSON snapshot. Value: ${paramSetStr.substring(0, 40)}...`,
+              error: `Invalid parameter JSON snapshot. Review formatting near: ${paramSetStr.substring(0, 40)}...`,
             });
           }
-        } else {
-          errors.push({
-            rowIndex: displayRowIndex,
-            error:
-              "Missing required fields or layout structure mismatch (Ensure Fills and PnL are numbers)",
-          });
         }
+        // Notice we no longer push an error if 'exp' is null.
+        // Missing Fills or PnL simply means the experiment is not yet ready to score!
       } catch (error) {
         errors.push({ rowIndex: displayRowIndex, error: String(error) });
       }

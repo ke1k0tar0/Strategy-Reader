@@ -246,13 +246,41 @@ export async function fetchSheetData(): Promise<{
     }
 
     const dataRows = allRows.slice(headerRowIndex + 1);
-    const rows = dataRows.map((row) => rowToObject(row, headers));
+
+    let lastDate = "";
+    let lastScope = "";
+
+    const rows = dataRows.map((row) => {
+      const obj = rowToObject(row, headers);
+
+      // Identify the actual keys for Date and Scope from the mapped headers
+      const dateKey = headers.find((h) => h.toLowerCase().includes("date"));
+      const scopeKey = headers.find(
+        (h) =>
+          h.toLowerCase().includes("scope") ||
+          h.toLowerCase().includes("strategy"),
+      );
+
+      // Forward-fill merged cells so grouped experiments maintain their identifiers
+      if (dateKey) {
+        const val = String(obj[dateKey] || "").trim();
+        if (val) lastDate = val;
+        else if (lastDate) obj[dateKey] = lastDate;
+      }
+
+      if (scopeKey) {
+        const val = String(obj[scopeKey] || "").trim();
+        if (val) lastScope = val;
+        else if (lastScope) obj[scopeKey] = lastScope;
+      }
+
+      return obj;
+    });
 
     logger(
       "info",
       `Successfully fetched ${rows.length} rows from Google Sheets`,
     );
-
     return { headers, rows };
   } catch (error) {
     if (error instanceof AppError) throw error;

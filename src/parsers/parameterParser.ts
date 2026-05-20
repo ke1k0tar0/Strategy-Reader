@@ -1,66 +1,86 @@
 /**
  * Parameter JSON parser
+ * Handles parsing and validation of JSON parameter sets from sheets
  */
 
 import { ParameterSet } from "@/src/types/strategy";
-import { parseJSON } from "@/src/utils/data";
 
+/**
+ * Flatten nested parameter objects recursively
+ */
+export function flattenParameters(
+  params: Record<string, any>,
+  prefix = "",
+): ParameterSet {
+  const flattened: ParameterSet = {};
+
+  Object.entries(params).forEach(([key, value]) => {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      Object.assign(flattened, flattenParameters(value, fullKey));
+    } else if (
+      typeof value === "number" ||
+      typeof value === "string" ||
+      typeof value === "boolean"
+    ) {
+      flattened[fullKey] = value;
+    }
+  });
+
+  return flattened;
+}
+
+/**
+ * Validate and parse parameter JSON with extremely high resilience
+ */
 export function parseParameterJSON(jsonString: string): ParameterSet | null {
   try {
     if (!jsonString || String(jsonString).trim() === "") return null;
 
-    let sanitized = String(jsonString)
-      .replace(/[\u2018\u2019]/g, "'")
-      .replace(/[\u201C\u201D]/g, '"')
-      .trim();
+    const sanitized = String(jsonString).trim();
+    let parsed: any = null;
 
-    if (sanitized.includes("'") && !sanitized.includes('"')) {
-      sanitized = sanitized.replace(/'/g, '"');
+    // 1. Try strict JSON parse first
+    try {
+      parsed = JSON.parse(sanitized);
+    } catch (e1) {
+      // 2. Try auto-wrapping with braces
+      let wrapped = sanitized;
+      if (!wrapped.startsWith("{") && !wrapped.startsWith("[")) {
+        wrapped = "{" + wrapped.replace(/,\s*$/, "") + "}";
+      }
+      try {
+        parsed = JSON.parse(wrapped);
+      } catch (e2) {
+        // 3. Fallback: Relaxed JS object parsing to handle unquoted keys,
+        // trailing commas, and single quotes commonly typed by humans.
+        try {
+          const fn = new Function("return " + wrapped);
+          parsed = fn();
+        } catch (e3) {
+          return null;
+        }
+      }
     }
 
-    let parsed = parseJSON<Record<string, unknown>>(sanitized);
-
+    // Handle accidental double-stringification
     if (typeof parsed === "string") {
-      parsed = parseJSON<Record<string, unknown>>(parsed);
+      try {
+        parsed = JSON.parse(parsed);
+      } catch (e) {}
     }
 
     if (!parsed || typeof parsed !== "object") return null;
 
-    const parameterSet: ParameterSet = {};
+    // Flatten nested objects (e.g. { a: { b: 1 } } -> { "a.b": 1 })
+    // so the ranking engine can analyze the parameters directly.
+    const flattened = flattenParameters(parsed);
 
-    Object.entries(parsed).forEach(([key, value]) => {
-      if (
-        typeof value === "number" ||
-        typeof value === "string" ||
-        typeof value === "boolean"
-      ) {
-        parameterSet[key] = value;
-      }
-    });
-
-    return Object.keys(parameterSet).length > 0 ? parameterSet : null;
+    return Object.keys(flattened).length > 0 ? flattened : null;
   } catch (error) {
     return null;
   }
-}
-
-export function flattenParameters(
-  params: ParameterSet,
-  prefix = "",
-): ParameterSet {
-  const flattened: ParameterSet = {};
-  Object.entries(params).forEach(([key, value]) => {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      Object.assign(
-        flattened,
-        flattenParameters(value as ParameterSet, fullKey),
-      );
-    } else {
-      flattened[fullKey] = value;
-    }
-  });
-  return flattened;
 }
 
 export function getParameterKeys(parameterSets: ParameterSet[]): string[] {
@@ -79,6 +99,7 @@ export function compareParameterSets(set1: ParameterSet, set2: ParameterSet) {
     unchanged: {} as Record<string, unknown>,
   };
   const allKeys = new Set([...Object.keys(set1), ...Object.keys(set2)]);
+
   allKeys.forEach((key) => {
     const value1 = set1[key];
     const value2 = set2[key];
@@ -111,6 +132,7 @@ export function getParameterStats(
   const numericValues = values.filter((v) => typeof v === "number") as number[];
   if (numericValues.length === 0)
     return { values: values as (string | number)[] };
+
   return {
     min: Math.min(...numericValues),
     max: Math.max(...numericValues),
