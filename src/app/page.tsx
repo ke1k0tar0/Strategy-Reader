@@ -83,9 +83,7 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen bg-slate-50/50 selection:bg-blue-100 selection:text-blue-900">
-      {/* Modern Header */}
       <div className="bg-slate-950 text-white pt-16 pb-24 border-b border-slate-800 relative overflow-hidden">
-        {/* Subtle background glow effect */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-full bg-gradient-to-b from-blue-600/20 to-transparent opacity-50 blur-3xl pointer-events-none"></div>
 
         <div className="max-w-6xl mx-auto px-6 relative z-10">
@@ -106,7 +104,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Main Content Area - Overlaps the header */}
       <div className="max-w-6xl mx-auto px-6 -mt-12 pb-20 relative z-20">
         <FilterControls
           strategies={strategies}

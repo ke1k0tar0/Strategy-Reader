@@ -1,12 +1,10 @@
 /**
  * Strategies API route
- * GET /api/strategies - Returns strict list of available strategies
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { logger, handleError } from "@/src/utils/errors";
 
-// The strict list of exactly 9 predefined strategies
 const PREDEFINED_STRATEGIES = [
   "5m Cross-Arb",
   "Copy-Trade",
@@ -19,19 +17,14 @@ const PREDEFINED_STRATEGIES = [
   "4H Horizon",
 ].sort();
 
-/**
- * Handle GET request - Return strictly the allowed strategies
- */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     logger("info", "Strategies API called");
-
     logger(
       "info",
       `Returning ${PREDEFINED_STRATEGIES.length} strict predefined strategies`,
     );
 
-    // Return only the predefined strategies, ignoring the Google Sheet data for the dropdown
     return NextResponse.json({
       success: true,
       data: {

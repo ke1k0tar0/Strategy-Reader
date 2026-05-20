@@ -285,8 +285,9 @@ export async function getSheetExperiments(): Promise<{
   if (missingColumns.length > 0) {
     throw new AppError(
       "MISSING_COLUMNS",
-      `Missing required columns: ${missingColumns.join(", ")}`,
+      `Your spreadsheet is missing required columns: ${missingColumns.join(", ")}.`,
       400,
+      { missingColumns },
     );
   }
 

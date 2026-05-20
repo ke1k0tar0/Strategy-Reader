@@ -11,11 +11,10 @@ export function RecommendationCard({
   recommendation,
   loading = false,
 }: RecommendationCardProps) {
-  if (loading) return null; // Handled by LoadingSkeleton
+  if (loading) return null;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      {/* Header Section */}
       <div className="bg-slate-50/50 border-b border-slate-100 p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -46,7 +45,6 @@ export function RecommendationCard({
       </div>
 
       <div className="p-6 md:p-8">
-        {/* Parameters Grid */}
         <div className="mb-8">
           <h3 className="text-sm font-bold text-slate-800 mb-4 tracking-tight">
             Recommended Parameters
@@ -75,7 +73,6 @@ export function RecommendationCard({
           </div>
         </div>
 
-        {/* Expected Outcomes Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5">
             <div className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1">
@@ -107,7 +104,6 @@ export function RecommendationCard({
           </div>
         </div>
 
-        {/* AI Explanation */}
         <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <svg

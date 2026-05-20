@@ -22,11 +22,9 @@ export function FilterControls({
   const [selectedMarketCondition, setSelectedMarketCondition] =
     useState<string>("");
 
-  // New Strategy State
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newStrategyName, setNewStrategyName] = useState("");
 
-  // Initialize and load custom strategies from localStorage
   useEffect(() => {
     const savedCustom = localStorage.getItem("custom_strategies");
     const parsedCustom = savedCustom ? JSON.parse(savedCustom) : [];
@@ -46,8 +44,6 @@ export function FilterControls({
     if (!name) return;
 
     const updatedCustom = Array.from(new Set([...customStrategies, name]));
-
-    // Update local state and storage
     localStorage.setItem("custom_strategies", JSON.stringify(updatedCustom));
     setCustomStrategies(updatedCustom);
 
@@ -61,19 +57,14 @@ export function FilterControls({
 
   const handleRemoveStrategy = () => {
     if (!selectedStrategy) return;
-
     const updatedCustom = customStrategies.filter(
       (s) => s !== selectedStrategy,
     );
-
-    // Update local state and storage
     localStorage.setItem("custom_strategies", JSON.stringify(updatedCustom));
     setCustomStrategies(updatedCustom);
 
     const combined = Array.from(new Set([...strategies, ...updatedCustom]));
     setAvailableStrategies(combined);
-
-    // Reset selection to the first available strategy to avoid breaking the UI
     setSelectedStrategy(combined[0] || "");
   };
 
@@ -99,7 +90,6 @@ export function FilterControls({
         </button>
       </div>
 
-      {/* Add New Strategy Panel */}
       {isAddingNew && (
         <form
           onSubmit={handleAddStrategy}
@@ -121,7 +111,7 @@ export function FilterControls({
           <button
             type="submit"
             disabled={!newStrategyName.trim()}
-            className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all shadow-sm"
+            className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-slate-300 transition-all shadow-sm"
           >
             Save to List
           </button>
@@ -129,19 +119,16 @@ export function FilterControls({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {/* Strategy Selector */}
         <div>
           <div className="flex justify-between items-end mb-2">
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
               Target Strategy <span className="text-red-400">*</span>
             </label>
-
-            {/* Remove Custom Strategy Button (Only visible if the selected strategy is custom) */}
             {customStrategies.includes(selectedStrategy) && (
               <button
                 onClick={handleRemoveStrategy}
                 className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1"
-                title="Remove this custom strategy"
+                title="Remove custom strategy"
               >
                 <svg
                   className="w-3.5 h-3.5"
@@ -160,7 +147,6 @@ export function FilterControls({
               </button>
             )}
           </div>
-
           <select
             value={selectedStrategy}
             onChange={(e) => setSelectedStrategy(e.target.value)}
@@ -179,7 +165,6 @@ export function FilterControls({
           </select>
         </div>
 
-        {/* Market Condition Selector */}
         <div>
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
             Market Condition Filter

@@ -18,12 +18,14 @@ export function handleError(error: unknown): {
   message: string;
   code: string;
   statusCode: number;
+  details?: unknown;
 } {
   if (error instanceof AppError) {
     return {
       message: error.message,
       code: error.code,
       statusCode: error.statusCode,
+      details: error.details,
     };
   }
 
@@ -51,22 +53,13 @@ export function logger(
   const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
 
   if (level === "error") {
-    if (data !== undefined) {
-      console.error(prefix, message, data);
-    } else {
-      console.error(prefix, message);
-    }
+    if (data !== undefined) console.error(prefix, message, data);
+    else console.error(prefix, message);
   } else if (level === "warn") {
-    if (data !== undefined) {
-      console.warn(prefix, message, data);
-    } else {
-      console.warn(prefix, message);
-    }
+    if (data !== undefined) console.warn(prefix, message, data);
+    else console.warn(prefix, message);
   } else {
-    if (data !== undefined) {
-      console.log(prefix, message, data);
-    } else {
-      console.log(prefix, message);
-    }
+    if (data !== undefined) console.log(prefix, message, data);
+    else console.log(prefix, message);
   }
 }
