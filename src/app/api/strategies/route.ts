@@ -36,16 +36,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     logger("info", "Strategies API called");
 
-    // Fetch raw sheet data
-    let sheetData;
+    // Fetch raw sheet data. If the Sheets call fails (credentials, range,
+    // permissions, etc.), return a safe fallback list so the build and UI
+    // don't fail. This prevents pre-render/build-time errors.
+    let headers: string[] = [];
+    let rows: Array<Record<string, unknown>> = [];
     try {
-      sheetData = await fetchSheetData();
+      const sheetData = await fetchSheetData();
+      headers = sheetData.headers;
+      rows = sheetData.rows as Array<Record<string, unknown>>;
     } catch (fetchError) {
-      logger("error", "Failed to fetch sheet data", fetchError);
-      throw fetchError;
+      // Log a warning and return a default fallback list below
+      logger(
+        "warn",
+        "Unable to load strategies from Google Sheets, using fallback list",
+        fetchError,
+      );
+      const fallback = ["1H Horizon"];
+      return NextResponse.json({
+        success: true,
+        data: { strategies: fallback, count: fallback.length, fallback: true },
+      });
     }
-
-    const { headers, rows } = sheetData;
 
     // Build column mapping
     const columnMapping: Record<string, string> = {};

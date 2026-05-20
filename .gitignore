@@ -26,6 +26,12 @@ build/
 # Credentials (IMPORTANT: Never commit this!)
 credentials.json
 
+# Private keys and certificates - ignore common key/cert files
+*.pem
+*.key
+*.p12
+*.crt
+
 # Logs
 logs/
 *.log
