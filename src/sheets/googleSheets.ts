@@ -101,8 +101,8 @@ export async function fetchSheetData(): Promise<{
   try {
     const sheets = await authenticateSheets();
     const sheetId = process.env.GOOGLE_SHEET_ID;
-    // Use sheet name only, or fall back to "Sheet1" - the API will fetch all data
-    const range = process.env.GOOGLE_SHEET_RANGE || "Sheet1";
+    // Use a wide range to capture all data - the API will only return populated cells
+    const range = process.env.GOOGLE_SHEET_RANGE || "Sheet1!A1:Z1000";
 
     if (!sheetId) {
       throw new AppError(

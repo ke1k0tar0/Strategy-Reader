@@ -37,7 +37,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     logger("info", "Strategies API called");
 
     // Fetch raw sheet data
-    const { headers, rows } = await fetchSheetData();
+    let sheetData;
+    try {
+      sheetData = await fetchSheetData();
+    } catch (fetchError) {
+      logger("error", "Failed to fetch sheet data", fetchError);
+      throw fetchError;
+    }
+
+    const { headers, rows } = sheetData;
 
     // Build column mapping
     const columnMapping: Record<string, string> = {};
@@ -47,6 +55,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         columnMapping["scope"] = header;
       }
     });
+
+    if (!columnMapping["scope"]) {
+      throw new AppError(
+        "MISSING_SCOPE_COLUMN",
+        "No 'Scope' or 'Strategy' column found in Google Sheet headers",
+        400,
+      );
+    }
 
     // Extract unique strategies
     const strategies = extractUniqueStrategies(
@@ -72,6 +88,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
+    logger("error", "Strategies API error", error);
     const errorResponse = handleError(error);
     return NextResponse.json(
       {
