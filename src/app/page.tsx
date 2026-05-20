@@ -57,6 +57,7 @@ export default function Dashboard() {
       const params = new URLSearchParams({ strategy: filters.strategy });
       if (filters.marketCondition)
         params.append("marketCondition", filters.marketCondition);
+      if (filters.date) params.append("date", filters.date); // <-- Attach date parameter to query
 
       const response = await fetch(`/api/recommendation?${params.toString()}`);
 

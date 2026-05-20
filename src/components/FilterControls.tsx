@@ -21,6 +21,7 @@ export function FilterControls({
   const [selectedStrategy, setSelectedStrategy] = useState<string>("");
   const [selectedMarketCondition, setSelectedMarketCondition] =
     useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>(""); // <-- New Date State
 
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newStrategyName, setNewStrategyName] = useState("");
@@ -73,6 +74,7 @@ export function FilterControls({
     onFilter({
       strategy: selectedStrategy,
       marketCondition: selectedMarketCondition || undefined,
+      date: selectedDate || undefined, // <-- Pass the date filter state up
     });
   };
 
@@ -118,7 +120,8 @@ export function FilterControls({
         </form>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {/* Grid updated to 3 columns to accommodate the Date Picker */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div>
           <div className="flex justify-between items-end mb-2">
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -182,6 +185,31 @@ export function FilterControls({
               </option>
             ))}
           </select>
+        </div>
+
+        {/* New Date Filter Component */}
+        <div>
+          <div className="flex justify-between items-end mb-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Target Date Filter
+            </label>
+            {selectedDate && (
+              <button
+                onClick={() => setSelectedDate("")}
+                className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+                title="Clear date selection"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            disabled={loading}
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all disabled:opacity-50 font-medium text-slate-700 cursor-pointer"
+          />
         </div>
       </div>
 

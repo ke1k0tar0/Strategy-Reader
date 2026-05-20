@@ -17,6 +17,7 @@ import { logger, handleError } from "@/src/utils/errors";
 const QuerySchema = z.object({
   strategy: z.string().min(1, "Strategy is required"),
   marketCondition: z.string().optional(),
+  date: z.string().optional(), // <-- New Date validation
   minPnL: z.coerce.number().optional(),
   minFills: z.coerce.number().optional(),
 });
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const queryData = {
       strategy: searchParams.get("strategy"),
       marketCondition: searchParams.get("marketCondition") || undefined,
+      date: searchParams.get("date") || undefined, // <-- Extract exact date
       minPnL: searchParams.get("minPnL")
         ? Number(searchParams.get("minPnL"))
         : undefined,
@@ -39,15 +41,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     logger("info", "Recommendation API called", {
       strategy: parsed.strategy,
       marketCondition: parsed.marketCondition,
+      date: parsed.date,
     });
 
     const experiments = await loadExperimentsWithCache();
+
     const filterOptions: FilterOptions = {
       strategy: parsed.strategy,
       marketCondition: parsed.marketCondition,
+      date: parsed.date, // <-- Pass down to filtering engine
       minPnL: parsed.minPnL,
       minFills: parsed.minFills,
     };
+
     const recommendation = await generateRecommendation(
       experiments,
       filterOptions,

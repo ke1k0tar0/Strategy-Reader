@@ -6,9 +6,6 @@
 import { NormalizedExperiment, FilterOptions } from "@/src/types/strategy";
 import { logger } from "@/src/utils/errors";
 
-/**
- * Apply filters to experiments
- */
 export function filterExperiments(
   experiments: NormalizedExperiment[],
   options: FilterOptions,
@@ -21,6 +18,29 @@ export function filterExperiments(
   );
 
   logger("info", `Filtered by strategy: ${filtered.length} experiments`);
+
+  // Filter by exact date
+  if (options.date) {
+    filtered = filtered.filter((exp) => {
+      // Direct string match first (in case Google Sheets sends '20-May')
+      if (exp.date === options.date) return true;
+
+      // Fallback to strict ISO Date parsing comparison
+      try {
+        const expDate = new Date(exp.date).toISOString().split("T")[0];
+        const filterDate = new Date(options.date as string)
+          .toISOString()
+          .split("T")[0];
+        return expDate === filterDate;
+      } catch {
+        return false;
+      }
+    });
+    logger(
+      "info",
+      `Filtered by exact date (${options.date}): ${filtered.length} experiments`,
+    );
+  }
 
   // Filter by market condition
   if (options.marketCondition) {
@@ -80,9 +100,6 @@ export function filterExperiments(
   return filtered;
 }
 
-/**
- * Get unique strategies
- */
 export function getUniqueStrategies(
   experiments: NormalizedExperiment[],
 ): string[] {
@@ -90,14 +107,10 @@ export function getUniqueStrategies(
   return Array.from(strategies).sort();
 }
 
-/**
- * Get unique market conditions
- */
 export function getUniqueMarketConditions(
   experiments: NormalizedExperiment[],
 ): string[] {
   const conditions = new Set<string>();
-
   experiments.forEach((exp) => {
     const conditionParts = exp.marketConditions
       .split(/[,;]/)
@@ -106,13 +119,9 @@ export function getUniqueMarketConditions(
       if (part) conditions.add(part);
     });
   });
-
   return Array.from(conditions).sort();
 }
 
-/**
- * Get unique verdicts
- */
 export function getUniqueVerdicts(
   experiments: NormalizedExperiment[],
 ): string[] {
@@ -122,14 +131,10 @@ export function getUniqueVerdicts(
   return Array.from(verdicts).sort();
 }
 
-/**
- * Get date range from experiments
- */
 export function getDateRange(
   experiments: NormalizedExperiment[],
 ): { min: string; max: string } | null {
   if (experiments.length === 0) return null;
-
   const dates = experiments
     .map((exp) => {
       try {
@@ -141,16 +146,12 @@ export function getDateRange(
     .filter((d) => d !== null) as number[];
 
   if (dates.length === 0) return null;
-
   return {
     min: new Date(Math.min(...dates)).toISOString().split("T")[0],
     max: new Date(Math.max(...dates)).toISOString().split("T")[0],
   };
 }
 
-/**
- * Filter by exact match
- */
 export function filterByExactMatch(
   experiments: NormalizedExperiment[],
   paramKey: string,
@@ -159,9 +160,6 @@ export function filterByExactMatch(
   return experiments.filter((exp) => exp.parameterSet[paramKey] === paramValue);
 }
 
-/**
- * Filter by parameter range
- */
 export function filterByParameterRange(
   experiments: NormalizedExperiment[],
   paramKey: string,
