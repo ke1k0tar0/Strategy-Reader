@@ -1,8 +1,3 @@
-/**
- * Recommendation Card Component
- * Displays the recommended parameters and key metrics
- */
-
 "use client";
 
 import { RecommendationResponse } from "@/src/types/strategy";
@@ -16,100 +11,124 @@ export function RecommendationCard({
   recommendation,
   loading = false,
 }: RecommendationCardProps) {
-  if (loading) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6 animate-pulse">
-        <div className="h-4 bg-slate-200 rounded w-1/4 mb-4"></div>
-        <div className="h-8 bg-slate-200 rounded w-1/2 mb-6"></div>
-        <div className="space-y-4">
-          <div className="h-4 bg-slate-200 rounded"></div>
-          <div className="h-4 bg-slate-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return null; // Handled by LoadingSkeleton
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">
-          Recommended Parameters
-        </h2>
-        {recommendation.marketCondition && (
-          <p className="text-slate-600">
-            Market Condition: {recommendation.marketCondition}
-          </p>
-        )}
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* Header Section */}
+      <div className="bg-slate-50/50 border-b border-slate-100 p-6 md:p-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
+              Optimal Configuration
+            </h2>
+            <div className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+              {recommendation.strategy}
+              {recommendation.marketCondition && (
+                <span className="text-sm font-medium bg-white px-3 py-1 rounded-full border border-slate-200 text-slate-500 shadow-sm">
+                  {recommendation.marketCondition}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-xs font-bold text-blue-600 uppercase tracking-wide">
+                Confidence Score
+              </div>
+              <div className="text-lg font-bold text-blue-900">
+                {(recommendation.confidence * 100).toFixed(0)}%
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Parameters Grid */}
-      <div className="bg-slate-50 rounded-lg p-4 mb-6 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-200">
-              <th className="text-left py-2 px-3 font-semibold text-slate-700">
-                Parameter
-              </th>
-              <th className="text-right py-2 px-3 font-semibold text-slate-700">
-                Value
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="p-6 md:p-8">
+        {/* Parameters Grid */}
+        <div className="mb-8">
+          <h3 className="text-sm font-bold text-slate-800 mb-4 tracking-tight">
+            Recommended Parameters
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(recommendation.recommendedParameters).map(
               ([key, value]) => (
-                <tr
+                <div
                   key={key}
-                  className="border-b border-slate-100 hover:bg-slate-100"
+                  className="bg-slate-50 border border-slate-100 rounded-xl p-4 transition-colors hover:bg-slate-100"
                 >
-                  <td className="py-2 px-3 text-slate-700">{key}</td>
-                  <td className="py-2 px-3 text-right font-mono text-slate-600">
-                    {typeof value === "number" ? value.toFixed(4) : value}
-                  </td>
-                </tr>
+                  <div
+                    className="text-xs font-medium text-slate-500 mb-1 truncate"
+                    title={key}
+                  >
+                    {key}
+                  </div>
+                  <div className="font-mono text-lg font-semibold text-slate-800">
+                    {typeof value === "number"
+                      ? value.toFixed(4).replace(/\.?0+$/, "")
+                      : String(value)}
+                  </div>
+                </div>
               ),
             )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4">
-          <div className="text-sm text-slate-600 mb-1">Expected PnL</div>
-          <div className="text-2xl font-bold text-green-600">
-            {recommendation.expectedPnL.toFixed(2)}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4">
-          <div className="text-sm text-slate-600 mb-1">Expected Fill Rate</div>
-          <div className="text-2xl font-bold text-blue-600">
-            {recommendation.expectedFillRate.toFixed(1)}%
+        {/* Expected Outcomes Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5">
+            <div className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1">
+              Expected Session PnL
+            </div>
+            <div className="text-3xl font-bold text-emerald-700 tracking-tight">
+              {recommendation.expectedPnL > 0 ? "+" : ""}
+              {recommendation.expectedPnL.toFixed(2)}
+            </div>
+          </div>
+
+          <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-5">
+            <div className="text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1">
+              Expected Fill Rate
+            </div>
+            <div className="text-3xl font-bold text-indigo-700 tracking-tight">
+              {recommendation.expectedFillRate.toFixed(1)}%
+            </div>
+          </div>
+
+          <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-5">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
+              Analysis Sample Size
+            </div>
+            <div className="text-3xl font-bold text-slate-700 tracking-tight">
+              {recommendation.sampleSize}{" "}
+              <span className="text-lg font-medium text-slate-400">runs</span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4">
-          <div className="text-sm text-slate-600 mb-1">Confidence Score</div>
-          <div className="text-2xl font-bold text-purple-600">
-            {(recommendation.confidence * 100).toFixed(0)}%
+        {/* AI Explanation */}
+        <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <svg
+              className="w-5 h-5 text-blue-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 className="font-semibold text-blue-900">Analysis Summary</h3>
           </div>
+          <p className="text-blue-800/80 leading-relaxed text-sm">
+            {recommendation.explanation}
+          </p>
         </div>
-
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4">
-          <div className="text-sm text-slate-600 mb-1">Sample Size</div>
-          <div className="text-2xl font-bold text-orange-600">
-            {recommendation.sampleSize}
-          </div>
-        </div>
-      </div>
-
-      {/* Explanation */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-slate-800 mb-2">Analysis</h3>
-        <p className="text-slate-700 leading-relaxed">
-          {recommendation.explanation}
-        </p>
       </div>
     </div>
   );

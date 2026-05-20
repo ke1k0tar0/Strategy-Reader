@@ -1,7 +1,3 @@
-/**
- * Main Dashboard Page
- */
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,7 +9,6 @@ import { LoadingSkeleton } from "@/src/components/LoadingSkeleton";
 import {
   RecommendationResponse,
   ApiErrorResponse,
-  NormalizedExperiment,
   FilterOptions,
 } from "@/src/types/strategy";
 
@@ -25,26 +20,20 @@ export default function Dashboard() {
   const [strategies, setStrategies] = useState<string[]>([]);
   const [marketConditions, setMarketConditions] = useState<string[]>([]);
 
-  /**
-   * Load available strategies and market conditions
-   */
   useEffect(() => {
     const loadMetadata = async () => {
       try {
-        // Fetch strategies from API
         const strategiesResponse = await fetch("/api/strategies");
-        if (!strategiesResponse.ok) {
+        if (!strategiesResponse.ok)
           throw new Error("Failed to fetch strategies");
-        }
 
         const strategiesData = await strategiesResponse.json();
         setStrategies(strategiesData.data.strategies);
 
-        // Set predefined market conditions
         setMarketConditions([
-          "Bearish",
-          "Bullish",
-          "Neutral",
+          "Down (Bearish)",
+          "Up (Bullish)",
+          "Sideways (Neutral)",
           "High Volatility",
           "Low Volatility",
         ]);
@@ -57,36 +46,18 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-
     loadMetadata();
   }, []);
 
-  /**
-   * Handle filter submission
-   */
   const handleFilter = async (filters: FilterOptions) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Build query string
-      const params = new URLSearchParams({
-        strategy: filters.strategy,
-      });
-
-      if (filters.marketCondition) {
+      const params = new URLSearchParams({ strategy: filters.strategy });
+      if (filters.marketCondition)
         params.append("marketCondition", filters.marketCondition);
-      }
 
-      if (filters.minPnL !== undefined) {
-        params.append("minPnL", String(filters.minPnL));
-      }
-
-      if (filters.minFills !== undefined) {
-        params.append("minFills", String(filters.minFills));
-      }
-
-      // Fetch recommendation
       const response = await fetch(`/api/recommendation?${params.toString()}`);
 
       if (!response.ok) {
@@ -111,23 +82,32 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4">
-          <h1 className="text-4xl font-bold mb-2">
-            Strategy Optimization Engine
+    <main className="min-h-screen bg-slate-50/50 selection:bg-blue-100 selection:text-blue-900">
+      {/* Modern Header */}
+      <div className="bg-slate-950 text-white pt-16 pb-24 border-b border-slate-800 relative overflow-hidden">
+        {/* Subtle background glow effect */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-full bg-gradient-to-b from-blue-600/20 to-transparent opacity-50 blur-3xl pointer-events-none"></div>
+
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-semibold uppercase tracking-widest mb-6">
+            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+            Quant Systems Live
+          </div>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">
+            Strategy{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
+              Optimization Engine
+            </span>
           </h1>
-          <p className="text-blue-100">
-            Analyze historical experiments and get optimal parameter
-            recommendations
+          <p className="text-slate-400 text-lg max-w-2xl leading-relaxed">
+            Analyze historical experiment snapshots to algorithmically identify
+            your most profitable, highest-fill parameter configurations.
           </p>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Filter Controls */}
+      {/* Main Content Area - Overlaps the header */}
+      <div className="max-w-6xl mx-auto px-6 -mt-12 pb-20 relative z-20">
         <FilterControls
           strategies={strategies}
           marketConditions={marketConditions}
@@ -135,41 +115,34 @@ export default function Dashboard() {
           loading={loading}
         />
 
-        {/* Error Alert */}
         {error && <ErrorAlert error={error} onDismiss={() => setError(null)} />}
-
-        {/* Loading State */}
         {loading && recommendation === null && <LoadingSkeleton />}
 
-        {/* Recommendation */}
         {recommendation && (
-          <>
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <RecommendationCard
               recommendation={recommendation}
               loading={false}
             />
-
-            {/* Historical Data */}
             {recommendation.historicalDataPoints.length > 0 && (
-              <div className="mt-8">
-                <HistoricalDataTable
-                  experiments={recommendation.historicalDataPoints}
-                />
-              </div>
+              <HistoricalDataTable
+                experiments={recommendation.historicalDataPoints}
+              />
             )}
-          </>
+          </div>
         )}
 
-        {/* Empty State */}
         {!loading && !recommendation && !error && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <div className="text-6xl mb-4">📊</div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">
-              No Recommendation Yet
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-16 text-center">
+            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-3xl">
+              📊
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 mb-2 tracking-tight">
+              Awaiting Parameters
             </h2>
-            <p className="text-slate-600">
-              Select a strategy and click &quot;Get Recommendation&quot; to
-              analyze historical data and get optimal parameters.
+            <p className="text-slate-500 max-w-sm mx-auto">
+              Select a strategy and click generate to query the Google Sheets
+              database and analyze historical runs.
             </p>
           </div>
         )}
