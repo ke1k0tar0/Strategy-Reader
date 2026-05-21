@@ -10,8 +10,8 @@ export function HistoricalDataTable({ experiments }: HistoricalDataTableProps) {
   if (!experiments || experiments.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-      <div className="bg-slate-50/50 border-b border-slate-100 p-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8 flex flex-col">
+      <div className="bg-slate-50/50 border-b border-slate-100 p-6 shrink-0">
         <h3 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
           <svg
             className="w-5 h-5 text-slate-400"
@@ -34,22 +34,33 @@ export function HistoricalDataTable({ experiments }: HistoricalDataTableProps) {
         </p>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
-          <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
+      {/* Added max-height and vertical overflow to activate the scroll bar */}
+      <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
+        <table className="w-full text-left text-sm text-slate-600 relative border-collapse">
+          {/* Added sticky positioning and background color to headers so they pin to the top */}
+          <thead className="text-xs uppercase font-bold text-slate-500 tracking-wider sticky top-0 z-10 shadow-sm">
             <tr>
-              <th className="px-6 py-4">Date</th>
-              <th className="px-6 py-4">Hypothesis</th>
-              <th className="px-6 py-4 text-right">Fills</th>
-              <th className="px-6 py-4 text-right">PnL</th>
-              <th className="px-6 py-4">AI Verdict Summary</th>
+              <th className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                Date
+              </th>
+              <th className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                Hypothesis
+              </th>
+              <th className="px-6 py-4 text-right bg-slate-50 border-b border-slate-200">
+                Fills
+              </th>
+              <th className="px-6 py-4 text-right bg-slate-50 border-b border-slate-200">
+                PnL
+              </th>
+              <th className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                AI Verdict Summary
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
             {experiments.map((exp) => {
               const status = exp.aiVerdictStatus || "Neutral";
 
-              // Dynamic color-coding based on the AI's classification
               const statusColors =
                 status === "Pass"
                   ? "bg-emerald-100 text-emerald-800 border-emerald-200"
@@ -66,7 +77,6 @@ export function HistoricalDataTable({ experiments }: HistoricalDataTableProps) {
                     {exp.date}
                   </td>
                   <td className="px-6 py-4 min-w-[300px] align-top">
-                    {/* Removed line-clamp to allow the full hypothesis to display naturally */}
                     <span className="text-slate-700 font-medium leading-relaxed">
                       {exp.hypothesis || "No hypothesis recorded."}
                     </span>
