@@ -32,8 +32,7 @@ export {
 
 export {
   generateRecommendation,
-  generateMultiConditionRecommendations,
-  getRecommendationAlternatives,
+  // Obsolete multi-condition functions were removed during the AI transition
 } from "./recommendation";
 
 export {
