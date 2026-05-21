@@ -50,60 +50,59 @@ export function convertRawRowToExperiment(
   try {
     const dateKey = columnMapping["date"];
     const scopeKey = columnMapping["scope"];
-    const fillsKey = columnMapping["fills"];
-    const pnlKey = columnMapping["pnl"];
 
-    if (!dateKey || !scopeKey || !fillsKey || !pnlKey) return null;
+    if (!dateKey || !scopeKey) return null;
 
     const date = String(row[dateKey] || "").trim();
     const scope = String(row[scopeKey] || "").trim();
 
-    if (!date || !scope) return null;
-
-    // Fast-fail gracefully if the cells use dash placeholders or are completely empty
-    let rawFillsStr = String(row[fillsKey] || "")
-      .replace(/%/g, "")
-      .trim();
-    let rawPnlStr = String(row[pnlKey] || "").trim();
-
-    if (
-      !rawFillsStr ||
-      rawFillsStr === "-" ||
-      !rawPnlStr ||
-      rawPnlStr === "-"
-    ) {
+    // Per Requirements: Redact/skip if a date has strictly not been assigned
+    // (Meaning it was blank and there was no previous date to forward-fill)
+    if (!date || !scope) {
       return null;
     }
 
+    // Safely parse numbers. Treat dashes or blanks as 0 so the row survives.
+    let rawFillsStr = String(row[columnMapping["fills"]] || "")
+      .replace(/%/g, "")
+      .trim();
+    if (rawFillsStr === "-" || !rawFillsStr) rawFillsStr = "0";
     if (rawFillsStr.includes(",") && !rawFillsStr.includes("."))
       rawFillsStr = rawFillsStr.replace(",", ".");
+    const fills = parseFloat(rawFillsStr.replace(/[^0-9.-]/g, "")) || 0;
+
+    let rawPnlStr = String(row[columnMapping["pnl"]] || "").trim();
+    if (rawPnlStr === "-" || !rawPnlStr) rawPnlStr = "0";
     if (rawPnlStr.includes(",") && !rawPnlStr.includes("."))
       rawPnlStr = rawPnlStr.replace(",", ".");
+    const pnl = parseFloat(rawPnlStr.replace(/[^0-9.-]/g, "")) || 0;
 
-    const fills = parseFloat(rawFillsStr.replace(/[^0-9.-]/g, ""));
-    const pnl = parseFloat(rawPnlStr.replace(/[^0-9.-]/g, ""));
-
-    if (isNaN(fills) || isNaN(pnl)) return null;
-
-    const parameterSet = {}; // Real parsing happens in dataLoader
+    // Real parameter parsing is handled in dataLoader.ts
+    const parameterSet = {};
 
     return {
       date,
       scope,
       parameterSet,
-      hypothesis: String(row[columnMapping["hypothesis"] || ""] || ""),
-      change: String(row[columnMapping["change"] || ""] || ""),
-      stopConditions: String(row[columnMapping["stopConditions"] || ""] || ""),
-      successMetric: String(row[columnMapping["successMetric"] || ""] || ""),
-      duration: String(row[columnMapping["duration"] || ""] || ""),
+      hypothesis: String(row[columnMapping["hypothesis"] || ""] || "").trim(),
+      change: String(row[columnMapping["change"] || ""] || "").trim(),
+      stopConditions: String(
+        row[columnMapping["stopConditions"] || ""] || "",
+      ).trim(),
+      successMetric: String(
+        row[columnMapping["successMetric"] || ""] || "",
+      ).trim(),
+      duration: String(row[columnMapping["duration"] || ""] || "").trim(),
       marketConditions: String(
         row[columnMapping["marketConditions"] || ""] || "",
-      ),
+      ).trim(),
       fills,
       pnl,
-      topGateReasons: String(row[columnMapping["topGateReasons"] || ""] || ""),
-      verdict: String(row[columnMapping["verdict"] || ""] || ""),
-      notes: String(row[columnMapping["notes"] || ""] || ""),
+      topGateReasons: String(
+        row[columnMapping["topGateReasons"] || ""] || "",
+      ).trim(),
+      verdict: String(row[columnMapping["verdict"] || ""] || "").trim(),
+      notes: String(row[columnMapping["notes"] || ""] || "").trim(),
       rowIndex,
       rawRow: row,
     };

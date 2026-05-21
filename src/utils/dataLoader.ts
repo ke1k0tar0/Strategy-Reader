@@ -23,49 +23,32 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
     const errors: Array<{ rowIndex: number; error: string }> = [];
 
     rawRows.forEach((row, index) => {
-      const displayRowIndex = index + 2;
-
-      // 1. Silently skip rows that are completely empty
-      const isEmpty = Object.values(row).every(
-        (val) => !val || String(val).trim() === "",
-      );
-      if (isEmpty) return;
-
-      // 2. Silently skip rows where the core identifiers or JSON are intentionally left blank
-      const dateKey = columnMapping["date"];
-      const scopeKey = columnMapping["scope"];
-      const paramSetKey = columnMapping["parameterSet"];
-
-      const dateStr = dateKey ? String(row[dateKey] || "").trim() : "";
-      const scopeStr = scopeKey ? String(row[scopeKey] || "").trim() : "";
-      const paramSetStr = paramSetKey
-        ? String(row[paramSetKey] || "").trim()
-        : "";
-
-      if (!dateStr || !scopeStr || !paramSetStr || paramSetStr === "-") {
-        return;
-      }
-
       try {
         const exp = convertRawRowToExperiment(row, columnMapping, index);
 
         if (exp) {
+          // Attempt to parse the parameter JSON
+          const paramSetStr = String(
+            row[columnMapping["parameterSet"]] || "",
+          ).trim();
           const paramSet = parseParameterJSON(paramSetStr);
 
-          if (paramSet) {
-            exp.parameterSet = paramSet;
-            experiments.push(exp);
-          } else {
-            errors.push({
-              rowIndex: displayRowIndex,
-              error: `Invalid parameter JSON snapshot. Review formatting near: ${paramSetStr.substring(0, 40)}...`,
-            });
-          }
+          // We NO LONGER drop the experiment if the JSON is missing/invalid.
+          // We assign whatever we extracted (or an empty object) so the Hypothesis is preserved!
+          exp.parameterSet = paramSet || {};
+          experiments.push(exp);
+        } else {
+          // If exp is null, the Date was completely empty (redacted)
+          errors.push({
+            rowIndex: index + 2,
+            error: "Row redacted: Missing Date assignment",
+          });
         }
-        // Notice we no longer push an error if 'exp' is null.
-        // Missing Fills or PnL simply means the experiment is not yet ready to score!
       } catch (error) {
-        errors.push({ rowIndex: displayRowIndex, error: String(error) });
+        errors.push({
+          rowIndex: index + 2,
+          error: String(error),
+        });
       }
     });
 
