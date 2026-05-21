@@ -18,7 +18,6 @@ export async function generateRecommendation(
 ): Promise<RecommendationResponse> {
   logger("info", "Starting AI-driven optimization pipeline");
 
-  // 1. Filter the dataset based on strategy and exact date
   const filtered = filterExperiments(experiments, options);
 
   if (filtered.length === 0) {
@@ -29,11 +28,18 @@ export async function generateRecommendation(
     );
   }
 
-  // 2. Delegate the entire optimization process to Gemini
-  // We send the full filtered dataset to the AI
   const aiResult = await generateAIAnalysis(filtered, options.strategy);
 
-  // 3. Return the AI's JSON output alongside ALL historical data points
+  // Map the Gemini-generated summaries back onto the historical data rows
+  const enrichedHistoricalData = filtered.map((exp) => {
+    const aiSummary = aiResult.historicalSummaries?.[exp.id];
+    return {
+      ...exp,
+      aiVerdictStatus: aiSummary?.status || "Neutral",
+      aiVerdictSummary: aiSummary?.summary || exp.verdict || "Pending",
+    };
+  });
+
   return {
     strategy: options.strategy,
     marketCondition: options.marketCondition,
@@ -43,7 +49,7 @@ export async function generateRecommendation(
     expectedFillRate: aiResult.expectedFillRate,
     sampleSize: filtered.length,
     explanation: aiResult.explanation,
-    aiExplanation: aiResult.explanation, // Maintained for UI compatibility
-    historicalDataPoints: filtered, // Returning ALL filtered records to the UI table!
+    aiExplanation: aiResult.explanation,
+    historicalDataPoints: enrichedHistoricalData, // Pass the enriched array to the frontend
   };
 }

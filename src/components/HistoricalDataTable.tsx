@@ -1,8 +1,3 @@
-/**
- * Historical Data Table Component
- * Displays the experiments that support the recommendation
- */
-
 "use client";
 
 import { NormalizedExperiment } from "@/src/types/strategy";
@@ -12,78 +7,109 @@ interface HistoricalDataTableProps {
 }
 
 export function HistoricalDataTable({ experiments }: HistoricalDataTableProps) {
-  if (experiments.length === 0) {
-    return null;
-  }
+  if (!experiments || experiments.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-xl font-bold text-slate-800 mb-4">
-        Historical Supporting Data
-      </h3>
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+      <div className="bg-slate-50/50 border-b border-slate-100 p-6">
+        <h3 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+          <svg
+            className="w-5 h-5 text-slate-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          Historical Supporting Data
+        </h3>
+        <p className="text-sm text-slate-500 mt-1">
+          Detailed breakdown of {experiments.length} analyzed experiment
+          {experiments.length === 1 ? "" : "s"}.
+        </p>
+      </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-100 border-b border-slate-300">
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                Date
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                Market
-              </th>
-              <th className="px-4 py-3 text-right font-semibold text-slate-700">
-                PnL
-              </th>
-              <th className="px-4 py-3 text-right font-semibold text-slate-700">
-                Fills
-              </th>
-              <th className="px-4 py-3 text-right font-semibold text-slate-700">
-                Score
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                Verdict
-              </th>
+        <table className="w-full text-left text-sm text-slate-600">
+          <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
+            <tr>
+              <th className="px-6 py-4">Date</th>
+              <th className="px-6 py-4">Parameters Tested</th>
+              <th className="px-6 py-4 text-right">Fills</th>
+              <th className="px-6 py-4 text-right">PnL</th>
+              <th className="px-6 py-4">AI Verdict Summary</th>
             </tr>
           </thead>
-          <tbody>
-            {experiments.map((exp) => (
-              <tr
-                key={exp.id}
-                className="border-b border-slate-200 hover:bg-slate-50 transition-colors"
-              >
-                <td className="px-4 py-3 text-slate-700">{exp.date}</td>
-                <td className="px-4 py-3 text-slate-600 text-xs">
-                  {exp.marketConditions.substring(0, 20)}
-                </td>
-                <td
-                  className={`px-4 py-3 text-right font-mono font-semibold ${
-                    exp.pnl >= 0 ? "text-green-600" : "text-red-600"
-                  }`}
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {experiments.map((exp) => {
+              const status = exp.aiVerdictStatus || "Neutral";
+
+              // Dynamic color-coding based on the AI's classification
+              const statusColors =
+                status === "Pass"
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                  : status === "Fail"
+                    ? "bg-red-100 text-red-800 border-red-200"
+                    : "bg-slate-100 text-slate-700 border-slate-200";
+
+              return (
+                <tr
+                  key={exp.id}
+                  className="hover:bg-slate-50/80 transition-colors"
                 >
-                  {exp.pnl.toFixed(2)}
-                </td>
-                <td className="px-4 py-3 text-right font-mono text-slate-700">
-                  {exp.fills.toFixed(1)}%
-                </td>
-                <td className="px-4 py-3 text-right font-mono text-blue-600">
-                  {exp.score.toFixed(3)}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                      exp.verdict.toLowerCase().includes("success")
-                        ? "bg-green-100 text-green-800"
-                        : exp.verdict.toLowerCase().includes("fail")
-                          ? "bg-red-100 text-red-800"
-                          : "bg-yellow-100 text-yellow-800"
-                    }`}
+                  <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                    {exp.date}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(exp.parameterSet).map(([k, v]) => (
+                        <span
+                          key={k}
+                          className="inline-flex text-[11px] font-mono bg-slate-100 border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded"
+                        >
+                          <span className="font-semibold text-slate-800 mr-1">
+                            {k}:
+                          </span>
+                          {typeof v === "number"
+                            ? v.toFixed(4).replace(/\.?0+$/, "")
+                            : String(v)}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right font-semibold text-slate-700">
+                    {exp.fills}%
+                  </td>
+                  <td
+                    className={`px-6 py-4 text-right font-bold ${exp.pnl > 0 ? "text-emerald-600" : exp.pnl < 0 ? "text-red-600" : "text-slate-600"}`}
                   >
-                    {exp.verdict.substring(0, 12)}
-                  </span>
-                </td>
-              </tr>
-            ))}
+                    {exp.pnl > 0 ? "+" : ""}
+                    {exp.pnl.toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 min-w-[250px]">
+                    <div className="flex flex-col items-start gap-1.5">
+                      <span
+                        className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded border ${statusColors}`}
+                      >
+                        {status}
+                      </span>
+                      {/* Displays the short 4-8 word AI summary, with the raw text available on mouse hover */}
+                      <span
+                        className="text-slate-700 font-medium leading-snug line-clamp-2"
+                        title={`Raw Sheet Notes: ${exp.verdict}`}
+                      >
+                        {exp.aiVerdictSummary || exp.verdict}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

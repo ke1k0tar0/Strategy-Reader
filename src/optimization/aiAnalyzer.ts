@@ -16,13 +16,14 @@ export async function generateAIAnalysis(
     if (!apiKey) {
       throw new AppError(
         "API_KEY_MISSING",
-        "GEMINI_API_KEY is not configured in environment variables.",
+        "GEMINI_API_KEY is not configured.",
         500,
       );
     }
 
-    // Pass ALL mandatory tracking data into the AI Context
+    // Include the unique 'id' so Gemini can map its summaries back to the correct row
     const analysisData = experiments.map((exp) => ({
+      id: exp.id,
       date: exp.date,
       hypothesis: exp.hypothesis,
       change: exp.change,
@@ -35,29 +36,33 @@ export async function generateAIAnalysis(
       parameters: exp.parameterSet,
       pnl: exp.pnl,
       fills: `${exp.fills}%`,
-      notes: exp.notes || undefined, // Include only if populated
+      notes: exp.notes || undefined,
     }));
 
     const prompt = `
       You are an expert Quantitative Trading AI Optimization Engine.
       Analyze ALL the historical experiment data below for the strategy "${strategyName}".
       
-      Data includes comprehensive context for each experiment: Date, Hypothesis, Parameter Changes, Stop Conditions (Capital Safety), Success Metrics, Duration, Market Conditions (Vol Regime), Top Gate Reasons, Verdicts, PnL, and Fill Rates.
-      
       Data:
       ${JSON.stringify(analysisData)}
       
       YOUR TASK:
-      Analyze all columns, especially how the "Hypothesis", "Stop conditions", and "Market Conditions" interact with the "Parameters" and "Top 3 Gate Reasons".
-      Determine the absolute best optimal parameter combination by finding these cross-parameter relationships.
+      1. Determine the absolute best optimal parameter combination.
+      2. For EVERY experiment provided in the data, read its raw 'verdict', 'notes', and PnL, and summarize it into a strict classification (Pass/Fail/Neutral) and an extremely short 4-to-8 word summary.
       
       Respond ONLY with a valid JSON object strictly matching this format:
       {
         "recommendedParameters": { "param_key": value },
-        "expectedPnL": number (your estimated realistic PnL),
-        "expectedFillRate": number (your estimated fill rate percentage, e.g. 85.5),
-        "confidence": number (between 0 and 1, representing your confidence in this combo),
-        "explanation": "A 2-3 paragraph deep explanation of WHY this combination is optimal, citing specific dates, stop conditions, market regimes, and gate reasons."
+        "expectedPnL": number,
+        "expectedFillRate": number,
+        "confidence": number,
+        "explanation": "A 2-3 paragraph deep explanation of WHY this combination is optimal...",
+        "historicalSummaries": {
+          "experiment_id_here": {
+            "status": "Pass" | "Fail" | "Neutral",
+            "summary": "Extremely concise 4-8 word summary of what happened."
+          }
+        }
       }
     `;
 
@@ -71,7 +76,7 @@ export async function generateAIAnalysis(
           systemInstruction: {
             parts: [
               {
-                text: "You are a quantitative trading JSON API. You evaluate complex data arrays and output strictly valid JSON.",
+                text: "You evaluate complex data arrays and output strictly valid JSON.",
               },
             ],
           },
@@ -98,9 +103,7 @@ export async function generateAIAnalysis(
     }
 
     const aiResult = await response.json();
-    const jsonText = aiResult.candidates[0].content.parts[0].text;
-
-    return JSON.parse(jsonText);
+    return JSON.parse(aiResult.candidates[0].content.parts[0].text);
   } catch (error) {
     logger("error", "Failed to generate AI analysis", error);
     throw error;

@@ -24,6 +24,8 @@ export interface StrategyExperiment {
 export interface NormalizedExperiment extends StrategyExperiment {
   id: string;
   score: number;
+  aiVerdictStatus?: string; // e.g., "Pass", "Fail", "Neutral"
+  aiVerdictSummary?: string; // e.g., "Held limits, minor slippage"
 }
 
 export interface ParameterSet {
