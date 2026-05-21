@@ -34,7 +34,7 @@ export function RecommendationCard({
           <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 flex items-center gap-3">
             <div className="text-right">
               <div className="text-xs font-bold text-blue-600 uppercase tracking-wide">
-                Confidence Score
+                Math Confidence
               </div>
               <div className="text-lg font-bold text-blue-900">
                 {(recommendation.confidence * 100).toFixed(0)}%
@@ -104,27 +104,48 @@ export function RecommendationCard({
           </div>
         </div>
 
-        <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5">
+        {/* Math Statistical Summary */}
+        <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-5 mb-4">
           <div className="flex items-center gap-2 mb-2">
-            <svg
-              className="w-5 h-5 text-blue-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <h3 className="font-semibold text-blue-900">Analysis Summary</h3>
+            <h3 className="font-semibold text-slate-800">
+              Statistical Baseline
+            </h3>
           </div>
-          <p className="text-blue-800/80 leading-relaxed text-sm">
+          <p className="text-slate-600 leading-relaxed text-sm">
             {recommendation.explanation}
           </p>
         </div>
+
+        {/* Gemini AI Deep Insights Panel */}
+        {recommendation.aiExplanation && (
+          <div className="bg-gradient-to-br from-indigo-50/50 via-purple-50/50 to-pink-50/50 border border-indigo-100/50 rounded-xl p-6 relative overflow-hidden group">
+            {/* Background Glow */}
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-gradient-to-br from-indigo-400 to-purple-400 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+
+            <div className="flex items-center gap-2 mb-3 relative z-10">
+              <svg
+                className="w-5 h-5 text-indigo-500"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+                />
+              </svg>
+              <h3 className="font-bold text-indigo-900 tracking-tight">
+                Gemini Deep Insights
+              </h3>
+            </div>
+
+            <div className="text-indigo-950/80 leading-relaxed text-sm whitespace-pre-line relative z-10 prose prose-sm prose-indigo">
+              {recommendation.aiExplanation}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

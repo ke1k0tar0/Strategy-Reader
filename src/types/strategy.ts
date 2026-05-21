@@ -45,6 +45,7 @@ export interface RecommendationResponse {
   expectedFillRate: number;
   sampleSize: number;
   explanation: string;
+  aiExplanation?: string; // <-- NEW FIELD FOR GEMINI INSIGHTS
   historicalDataPoints: NormalizedExperiment[];
 }
 

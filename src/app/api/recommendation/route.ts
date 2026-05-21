@@ -1,11 +1,8 @@
-/**
- * Recommendation API route
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { loadExperimentsWithCache } from "@/src/utils/dataLoader";
 import { generateRecommendation } from "@/src/optimization/recommendation";
+import { generateAIAnalysis } from "@/src/optimization/aiAnalyzer"; // <-- Import the new AI Analyzer
 import {
   FilterOptions,
   ApiErrorResponse,
@@ -17,7 +14,7 @@ import { logger, handleError } from "@/src/utils/errors";
 const QuerySchema = z.object({
   strategy: z.string().min(1, "Strategy is required"),
   marketCondition: z.string().optional(),
-  date: z.string().optional(), // <-- New Date validation
+  date: z.string().optional(),
   minPnL: z.coerce.number().optional(),
   minFills: z.coerce.number().optional(),
 });
@@ -28,7 +25,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const queryData = {
       strategy: searchParams.get("strategy"),
       marketCondition: searchParams.get("marketCondition") || undefined,
-      date: searchParams.get("date") || undefined, // <-- Extract exact date
+      date: searchParams.get("date") || undefined,
       minPnL: searchParams.get("minPnL")
         ? Number(searchParams.get("minPnL"))
         : undefined,
@@ -49,18 +46,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const filterOptions: FilterOptions = {
       strategy: parsed.strategy,
       marketCondition: parsed.marketCondition,
-      date: parsed.date, // <-- Pass down to filtering engine
+      date: parsed.date,
       minPnL: parsed.minPnL,
       minFills: parsed.minFills,
     };
 
+    // 1. Get the standard deterministic math recommendation
     const recommendation = await generateRecommendation(
       experiments,
       filterOptions,
     );
 
+    // 2. NEW: Trigger Gemini to read the human notes and find hidden relationships
+    // We pass it up to 20 historical data points to prevent blowing up the token limit
+    const aiExplanation = await generateAIAnalysis(
+      recommendation.historicalDataPoints.slice(0, 20),
+      recommendation.recommendedParameters,
+    );
+
+    // 3. Combine both into the final response
     const response: ApiSuccessResponse<RecommendationResponse> = {
-      data: recommendation,
+      data: {
+        ...recommendation,
+        aiExplanation, // <-- Attach Gemini's insight
+      },
       timestamp: new Date().toISOString(),
     };
 
