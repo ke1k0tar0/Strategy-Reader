@@ -39,7 +39,7 @@ export function HistoricalDataTable({ experiments }: HistoricalDataTableProps) {
           <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
             <tr>
               <th className="px-6 py-4">Date</th>
-              <th className="px-6 py-4">Parameters Tested</th>
+              <th className="px-6 py-4">Hypothesis</th>
               <th className="px-6 py-4 text-right">Fills</th>
               <th className="px-6 py-4 text-right">PnL</th>
               <th className="px-6 py-4">AI Verdict Summary</th>
@@ -65,22 +65,14 @@ export function HistoricalDataTable({ experiments }: HistoricalDataTableProps) {
                   <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                     {exp.date}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      {Object.entries(exp.parameterSet).map(([k, v]) => (
-                        <span
-                          key={k}
-                          className="inline-flex text-[11px] font-mono bg-slate-100 border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded"
-                        >
-                          <span className="font-semibold text-slate-800 mr-1">
-                            {k}:
-                          </span>
-                          {typeof v === "number"
-                            ? v.toFixed(4).replace(/\.?0+$/, "")
-                            : String(v)}
-                        </span>
-                      ))}
-                    </div>
+                  <td className="px-6 py-4 max-w-[280px]">
+                    {/* The hypothesis is visually clamped to 2 lines for summary readability, full text on hover */}
+                    <span
+                      className="text-slate-700 font-medium leading-snug line-clamp-2"
+                      title={exp.hypothesis}
+                    >
+                      {exp.hypothesis || "No hypothesis recorded."}
+                    </span>
                   </td>
                   <td className="px-6 py-4 text-right font-semibold text-slate-700">
                     {exp.fills}%
@@ -98,7 +90,6 @@ export function HistoricalDataTable({ experiments }: HistoricalDataTableProps) {
                       >
                         {status}
                       </span>
-                      {/* Displays the short 4-8 word AI summary, with the raw text available on mouse hover */}
                       <span
                         className="text-slate-700 font-medium leading-snug line-clamp-2"
                         title={`Raw Sheet Notes: ${exp.verdict}`}
