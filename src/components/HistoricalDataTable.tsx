@@ -62,28 +62,25 @@ export function HistoricalDataTable({ experiments }: HistoricalDataTableProps) {
                   key={exp.id}
                   className="hover:bg-slate-50/80 transition-colors"
                 >
-                  <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                  <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap align-top">
                     {exp.date}
                   </td>
-                  <td className="px-6 py-4 max-w-[280px]">
-                    {/* The hypothesis is visually clamped to 2 lines for summary readability, full text on hover */}
-                    <span
-                      className="text-slate-700 font-medium leading-snug line-clamp-2"
-                      title={exp.hypothesis}
-                    >
+                  <td className="px-6 py-4 min-w-[300px] align-top">
+                    {/* Removed line-clamp to allow the full hypothesis to display naturally */}
+                    <span className="text-slate-700 font-medium leading-relaxed">
                       {exp.hypothesis || "No hypothesis recorded."}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right font-semibold text-slate-700">
+                  <td className="px-6 py-4 text-right font-semibold text-slate-700 align-top">
                     {exp.fills}%
                   </td>
                   <td
-                    className={`px-6 py-4 text-right font-bold ${exp.pnl > 0 ? "text-emerald-600" : exp.pnl < 0 ? "text-red-600" : "text-slate-600"}`}
+                    className={`px-6 py-4 text-right font-bold align-top ${exp.pnl > 0 ? "text-emerald-600" : exp.pnl < 0 ? "text-red-600" : "text-slate-600"}`}
                   >
                     {exp.pnl > 0 ? "+" : ""}
                     {exp.pnl.toFixed(2)}
                   </td>
-                  <td className="px-6 py-4 min-w-[250px]">
+                  <td className="px-6 py-4 min-w-[250px] align-top">
                     <div className="flex flex-col items-start gap-1.5">
                       <span
                         className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded border ${statusColors}`}
