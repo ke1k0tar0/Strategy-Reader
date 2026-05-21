@@ -21,26 +21,35 @@ export async function generateAIAnalysis(
       );
     }
 
+    // Pass ALL mandatory tracking data into the AI Context
     const analysisData = experiments.map((exp) => ({
       date: exp.date,
       hypothesis: exp.hypothesis,
       change: exp.change,
-      parameters: exp.parameterSet,
+      stopConditions: exp.stopConditions,
+      successMetric: exp.successMetric,
+      duration: exp.duration,
+      marketConditions: exp.marketConditions,
+      topGateReasons: exp.topGateReasons,
       verdict: exp.verdict,
+      parameters: exp.parameterSet,
       pnl: exp.pnl,
       fills: `${exp.fills}%`,
+      notes: exp.notes || undefined, // Include only if populated
     }));
 
     const prompt = `
       You are an expert Quantitative Trading AI Optimization Engine.
       Analyze ALL the historical experiment data below for the strategy "${strategyName}".
       
+      Data includes comprehensive context for each experiment: Date, Hypothesis, Parameter Changes, Stop Conditions (Capital Safety), Success Metrics, Duration, Market Conditions (Vol Regime), Top Gate Reasons, Verdicts, PnL, and Fill Rates.
+      
       Data:
       ${JSON.stringify(analysisData)}
       
       YOUR TASK:
-      Analyze the hypotheses, parameter changes, verdicts, PnL, and Fill Rates.
-      Determine the absolute best optimal parameter combination by finding cross-parameter relationships and identifying the most successful historical conditions.
+      Analyze all columns, especially how the "Hypothesis", "Stop conditions", and "Market Conditions" interact with the "Parameters" and "Top 3 Gate Reasons".
+      Determine the absolute best optimal parameter combination by finding these cross-parameter relationships.
       
       Respond ONLY with a valid JSON object strictly matching this format:
       {
@@ -48,7 +57,7 @@ export async function generateAIAnalysis(
         "expectedPnL": number (your estimated realistic PnL),
         "expectedFillRate": number (your estimated fill rate percentage, e.g. 85.5),
         "confidence": number (between 0 and 1, representing your confidence in this combo),
-        "explanation": "A 2-3 paragraph deep explanation of WHY this combination is optimal, citing specific dates, data points, and cross-parameter relationships."
+        "explanation": "A 2-3 paragraph deep explanation of WHY this combination is optimal, citing specific dates, stop conditions, market regimes, and gate reasons."
       }
     `;
 
@@ -62,13 +71,13 @@ export async function generateAIAnalysis(
           systemInstruction: {
             parts: [
               {
-                text: "You are a quantitative trading JSON API. You evaluate data and output strictly valid JSON.",
+                text: "You are a quantitative trading JSON API. You evaluate complex data arrays and output strictly valid JSON.",
               },
             ],
           },
           generationConfig: {
-            temperature: 0.2, // Low temperature for high logical consistency
-            responseMimeType: "application/json", // Forces Gemini to output pure JSON
+            temperature: 0.2,
+            responseMimeType: "application/json",
           },
         }),
       },

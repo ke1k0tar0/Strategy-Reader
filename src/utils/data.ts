@@ -41,68 +41,83 @@ export function parseJSON<T = Record<string, unknown>>(
     return null;
   }
 }
-
 export function convertRawRowToExperiment(
   row: RawSheetRow,
   columnMapping: Record<string, string>,
   rowIndex: number,
 ): StrategyExperiment | null {
   try {
-    const dateKey = columnMapping["date"];
-    const scopeKey = columnMapping["scope"];
+    // Dynamic searcher: ignores spaces, case, and special characters (e.g., matches "Top 3 Gate Reasons" with "gatereason")
+    const getVal = (searchStr: string) => {
+      const target = searchStr.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const key = Object.keys(row).find((k) =>
+        k
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "")
+          .includes(target),
+      );
+      return key ? String(row[key] || "").trim() : "";
+    };
 
-    if (!dateKey || !scopeKey) return null;
+    const date = getVal("date");
+    const scope = getVal("scope") || getVal("strategy");
+    const hypothesis = getVal("hypothesis");
+    const change = getVal("change");
+    const stopConditions = getVal("stopcondition");
+    const successMetric = getVal("successmetric");
+    const duration = getVal("duration");
+    const marketConditions = getVal("marketcondition");
+    const topGateReasons = getVal("gatereason");
+    const verdict = getVal("verdict");
 
-    const date = String(row[dateKey] || "").trim();
-    const scope = String(row[scopeKey] || "").trim();
+    // Notes is specifically optional
+    const notes = getVal("notes");
 
-    // Per Requirements: Redact/skip if a date has strictly not been assigned
-    // (Meaning it was blank and there was no previous date to forward-fill)
-    if (!date || !scope) {
+    // STRICT VALIDATOR: Fast-fail if ANY mandatory column is empty
+    if (
+      !date ||
+      !scope ||
+      !hypothesis ||
+      !change ||
+      !stopConditions ||
+      !successMetric ||
+      !duration ||
+      !marketConditions ||
+      !topGateReasons ||
+      !verdict
+    ) {
       return null;
     }
 
-    // Safely parse numbers. Treat dashes or blanks as 0 so the row survives.
-    let rawFillsStr = String(row[columnMapping["fills"]] || "")
-      .replace(/%/g, "")
-      .trim();
+    let rawFillsStr = getVal("fills").replace(/%/g, "");
+    let rawPnlStr = getVal("pnl");
+
     if (rawFillsStr === "-" || !rawFillsStr) rawFillsStr = "0";
+    if (rawPnlStr === "-" || !rawPnlStr) rawPnlStr = "0";
+
     if (rawFillsStr.includes(",") && !rawFillsStr.includes("."))
       rawFillsStr = rawFillsStr.replace(",", ".");
-    const fills = parseFloat(rawFillsStr.replace(/[^0-9.-]/g, "")) || 0;
-
-    let rawPnlStr = String(row[columnMapping["pnl"]] || "").trim();
-    if (rawPnlStr === "-" || !rawPnlStr) rawPnlStr = "0";
     if (rawPnlStr.includes(",") && !rawPnlStr.includes("."))
       rawPnlStr = rawPnlStr.replace(",", ".");
-    const pnl = parseFloat(rawPnlStr.replace(/[^0-9.-]/g, "")) || 0;
 
-    // Real parameter parsing is handled in dataLoader.ts
-    const parameterSet = {};
+    const fills = parseFloat(rawFillsStr.replace(/[^0-9.-]/g, "")) || 0;
+    const pnl = parseFloat(rawPnlStr.replace(/[^0-9.-]/g, "")) || 0;
 
     return {
       date,
       scope,
-      parameterSet,
-      hypothesis: String(row[columnMapping["hypothesis"] || ""] || "").trim(),
-      change: String(row[columnMapping["change"] || ""] || "").trim(),
-      stopConditions: String(
-        row[columnMapping["stopConditions"] || ""] || "",
-      ).trim(),
-      successMetric: String(
-        row[columnMapping["successMetric"] || ""] || "",
-      ).trim(),
-      duration: String(row[columnMapping["duration"] || ""] || "").trim(),
-      marketConditions: String(
-        row[columnMapping["marketConditions"] || ""] || "",
-      ).trim(),
+      parameterSet: {}, // Real parsing happens securely in dataLoader
+      hypothesis,
+      change,
+      stopConditions,
+      successMetric,
+      duration,
+      marketConditions,
       fills,
       pnl,
-      topGateReasons: String(
-        row[columnMapping["topGateReasons"] || ""] || "",
-      ).trim(),
-      verdict: String(row[columnMapping["verdict"] || ""] || "").trim(),
-      notes: String(row[columnMapping["notes"] || ""] || "").trim(),
+      topGateReasons,
+      verdict,
+      notes,
       rowIndex,
       rawRow: row,
     };
