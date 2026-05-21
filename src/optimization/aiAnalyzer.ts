@@ -1,24 +1,26 @@
 /**
  * AI Analysis Engine
- * Uses Google's Gemini API to analyze parameter relationships and hypotheses
+ * Uses Google's Gemini API to act as the sole optimization engine
  */
 
-import { NormalizedExperiment, ParameterSet } from "@/src/types/strategy";
-import { logger } from "@/src/utils/errors";
+import { NormalizedExperiment } from "@/src/types/strategy";
+import { logger, AppError } from "@/src/utils/errors";
 
 export async function generateAIAnalysis(
   experiments: NormalizedExperiment[],
-  winningParams: ParameterSet,
-): Promise<string> {
+  strategyName: string,
+): Promise<any> {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      logger("warn", "GEMINI_API_KEY is not configured. Skipping AI analysis.");
-      return "AI deep analysis is currently unavailable because the Gemini API key is missing from the environment variables.";
+      throw new AppError(
+        "API_KEY_MISSING",
+        "GEMINI_API_KEY is not configured in environment variables.",
+        500,
+      );
     }
 
-    // 1. Strip down the data to save tokens and focus the AI
     const analysisData = experiments.map((exp) => ({
       date: exp.date,
       hypothesis: exp.hypothesis,
@@ -29,44 +31,44 @@ export async function generateAIAnalysis(
       fills: `${exp.fills}%`,
     }));
 
-    // 2. Build the context for Gemini
     const prompt = `
-      You are an expert Quantitative Trading AI Assistant.
+      You are an expert Quantitative Trading AI Optimization Engine.
+      Analyze ALL the historical experiment data below for the strategy "${strategyName}".
       
-      The deterministic math engine has already selected the following parameter configuration as the OPTIMAL choice based on historical PnL and Fill Rates:
-      ${JSON.stringify(winningParams, null, 2)}
-      
-      Below is the historical experiment data for this strategy. Read the human-written 'hypothesis', 'change', and 'verdict' columns alongside the resulting 'parameters'.
-      
-      Historical Data:
+      Data:
       ${JSON.stringify(analysisData)}
       
       YOUR TASK:
-      Write a concise, highly intelligent 2-3 paragraph analysis explaining WHY this specific parameter combination won. 
-      Focus heavily on "cross-parameter relationships" (e.g., "Increasing X only works when Y is decreased, as seen in the tests on Date..."). 
-      Do not repeat the raw math (I already have that). Provide the deep, qualitative insights that a senior quant researcher would write. Format your response cleanly.
+      Analyze the hypotheses, parameter changes, verdicts, PnL, and Fill Rates.
+      Determine the absolute best optimal parameter combination by finding cross-parameter relationships and identifying the most successful historical conditions.
+      
+      Respond ONLY with a valid JSON object strictly matching this format:
+      {
+        "recommendedParameters": { "param_key": value },
+        "expectedPnL": number (your estimated realistic PnL),
+        "expectedFillRate": number (your estimated fill rate percentage, e.g. 85.5),
+        "confidence": number (between 0 and 1, representing your confidence in this combo),
+        "explanation": "A 2-3 paragraph deep explanation of WHY this combination is optimal, citing specific dates, data points, and cross-parameter relationships."
+      }
     `;
 
-    // 3. Call the Gemini API via native fetch
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           systemInstruction: {
             parts: [
               {
-                text: "You are a professional, direct, and highly technical quantitative trading assistant. Avoid fluff.",
+                text: "You are a quantitative trading JSON API. You evaluate data and output strictly valid JSON.",
               },
             ],
           },
           generationConfig: {
-            temperature: 0.3, // Low temperature for highly logical, analytical output
-            maxOutputTokens: 500,
+            temperature: 0.2, // Low temperature for high logical consistency
+            responseMimeType: "application/json", // Forces Gemini to output pure JSON
           },
         }),
       },
@@ -78,13 +80,20 @@ export async function generateAIAnalysis(
         status: response.status,
         error: errText,
       });
-      return "AI deep analysis failed to generate due to an API error.";
+      throw new AppError(
+        "AI_ERROR",
+        "Failed to retrieve AI analysis.",
+        500,
+        errText,
+      );
     }
 
     const aiResult = await response.json();
-    return aiResult.candidates[0].content.parts[0].text;
+    const jsonText = aiResult.candidates[0].content.parts[0].text;
+
+    return JSON.parse(jsonText);
   } catch (error) {
     logger("error", "Failed to generate AI analysis", error);
-    return "AI deep analysis failed due to a system error.";
+    throw error;
   }
 }
