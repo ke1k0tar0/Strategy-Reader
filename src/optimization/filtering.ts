@@ -12,9 +12,13 @@ export function filterExperiments(
 ): NormalizedExperiment[] {
   let filtered = experiments;
 
+  // Highly resilient string normalization (removes spaces, dashes, and ignores case)
+  const normalizeString = (str: string) =>
+    str.toLowerCase().replace(/[^a-z0-9]/g, "");
+
   // Filter by strategy (required)
   filtered = filtered.filter(
-    (exp) => exp.scope.toLowerCase() === options.strategy.toLowerCase(),
+    (exp) => normalizeString(exp.scope) === normalizeString(options.strategy),
   );
 
   logger("info", `Filtered by strategy: ${filtered.length} experiments`);
@@ -22,25 +26,23 @@ export function filterExperiments(
   // Advanced Date Filter (Handles DD/MM/YYYY, MM/DD/YYYY, and YYYY-MM-DD gracefully)
   if (options.date) {
     const [year, month, day] = options.date.split("-");
-    const mInt = parseInt(month, 10).toString(); // Removes leading zero
-    const dInt = parseInt(day, 10).toString(); // Removes leading zero
+    const mInt = parseInt(month, 10).toString();
+    const dInt = parseInt(day, 10).toString();
 
     const possibleFormats = [
-      options.date, // YYYY-MM-DD
-      `${day}/${month}/${year}`, // DD/MM/YYYY (Standard Sheet format)
-      `${month}/${day}/${year}`, // MM/DD/YYYY
-      `${dInt}/${mInt}/${year}`, // D/M/YYYY
-      `${mInt}/${dInt}/${year}`, // M/D/YYYY
-      `${year}/${month}/${day}`, // YYYY/MM/DD
+      options.date,
+      `${day}/${month}/${year}`,
+      `${month}/${day}/${year}`,
+      `${dInt}/${mInt}/${year}`,
+      `${mInt}/${dInt}/${year}`,
+      `${year}/${month}/${day}`,
     ];
 
     filtered = filtered.filter((exp) => {
       const sheetDate = exp.date.trim();
 
-      // Match against the net of format combinations
       if (possibleFormats.includes(sheetDate)) return true;
 
-      // Strict fallback parser for native JS Date types
       try {
         const expDateIso = new Date(sheetDate).toISOString().split("T")[0];
         return expDateIso === options.date;
@@ -83,30 +85,13 @@ export function filterExperiments(
     logger("info", `Filtered by date range: ${filtered.length} experiments`);
   }
 
-  // Filter by verdict
-  if (options.verdict) {
-    filtered = filtered.filter((exp) =>
-      exp.verdict.toLowerCase().includes(options.verdict!.toLowerCase()),
-    );
-    logger("info", `Filtered by verdict: ${filtered.length} experiments`);
-  }
-
-  // Filter by minimum PnL
+  // Filter by min PnL and Fills
   if (options.minPnL !== undefined) {
     filtered = filtered.filter((exp) => exp.pnl >= options.minPnL!);
-    logger(
-      "info",
-      `Filtered by min PnL (${options.minPnL}): ${filtered.length} experiments`,
-    );
   }
 
-  // Filter by minimum fills
   if (options.minFills !== undefined) {
     filtered = filtered.filter((exp) => exp.fills >= options.minFills!);
-    logger(
-      "info",
-      `Filtered by min fills (${options.minFills}): ${filtered.length} experiments`,
-    );
   }
 
   return filtered;

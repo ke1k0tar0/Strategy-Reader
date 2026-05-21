@@ -12,43 +12,88 @@ export function ErrorAlert({ error, onDismiss }: ErrorAlertProps) {
   const code = typeof error === "string" ? "ERROR" : error.code;
   const details = typeof error === "string" ? null : (error.details as any);
 
+  // Determine if this is an informational empty state vs a real error
+  const isInfo = code === "NO_RECOMMENDATIONS";
+
+  const colors = isInfo
+    ? {
+        bg: "bg-blue-50/90",
+        border: "border-blue-200",
+        text: "text-blue-900",
+        subtext: "text-blue-700",
+        iconBg: "bg-blue-100",
+        iconText: "text-blue-600",
+      }
+    : {
+        bg: "bg-red-50/90",
+        border: "border-red-200",
+        text: "text-red-900",
+        subtext: "text-red-700",
+        iconBg: "bg-red-100",
+        iconText: "text-red-600",
+      };
+
   return (
-    <div className="bg-red-50/90 backdrop-blur-md border border-red-200 rounded-2xl p-6 mb-8 shadow-sm animate-in fade-in slide-in-from-top-2">
+    <div
+      className={`${colors.bg} backdrop-blur-md border ${colors.border} rounded-2xl p-6 mb-8 shadow-sm animate-in fade-in slide-in-from-top-2`}
+    >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
+          <div
+            className={`w-10 h-10 ${colors.iconBg} ${colors.iconText} rounded-full flex items-center justify-center shrink-0`}
+          >
+            {isInfo ? (
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            )}
           </div>
           <div>
-            <h3 className="text-lg font-bold text-red-900 tracking-tight">
+            <h3 className={`text-lg font-bold ${colors.text} tracking-tight`}>
               {code === "NO_VALID_DATA"
                 ? "Spreadsheet Parsing Error"
                 : code === "MISSING_COLUMNS"
                   ? "Missing Required Columns"
                   : code === "NO_RECOMMENDATIONS"
-                    ? "Insufficient Data"
+                    ? "Awaiting Experiment Data"
                     : `System Error: ${code}`}
             </h3>
-            <p className="text-red-700 font-medium mt-0.5 text-sm">{message}</p>
+            <p className={`${colors.subtext} font-medium mt-0.5 text-sm`}>
+              {code === "NO_RECOMMENDATIONS"
+                ? "You haven't added any completed experiments for this strategy to your Google Sheet yet (or the rows were redacted due to a missing date). Please add data to generate AI insights."
+                : message}
+            </p>
           </div>
         </div>
         {onDismiss && (
           <button
             onClick={onDismiss}
-            className="text-red-400 hover:text-red-600 hover:bg-red-100 p-2 rounded-full transition-colors"
-            title="Dismiss error"
+            className={`${colors.subtext} hover:opacity-70 p-2 rounded-full transition-opacity`}
+            title="Dismiss"
           >
             <svg
               className="w-5 h-5"
@@ -68,8 +113,12 @@ export function ErrorAlert({ error, onDismiss }: ErrorAlertProps) {
       </div>
 
       {details && typeof details === "object" && (
-        <div className="mt-5 bg-white/70 rounded-xl p-4 border border-red-100">
-          <h4 className="text-xs font-bold text-red-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+        <div
+          className={`mt-5 ${isInfo ? "bg-white/50 border-blue-100" : "bg-white/70 border-red-100"} rounded-xl p-4 border`}
+        >
+          <h4
+            className={`text-xs font-bold ${isInfo ? "text-blue-800" : "text-red-800"} uppercase tracking-wider mb-3 flex items-center gap-2`}
+          >
             <svg
               className="w-4 h-4"
               fill="none"

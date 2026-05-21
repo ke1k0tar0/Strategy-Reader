@@ -23,6 +23,8 @@ const QuerySchema = z.object({
 });
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  let requestedStrategy = "Unknown";
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const queryData = {
@@ -38,6 +40,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     };
 
     const parsed = QuerySchema.parse(queryData);
+    requestedStrategy = parsed.strategy;
+
     logger("info", "Recommendation API called", {
       strategy: parsed.strategy,
       marketCondition: parsed.marketCondition,
@@ -67,8 +71,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    logger("error", "Recommendation API error", error);
     const errorInfo = handleError(error);
+
+    // Check if this is just an expected empty state and log it peacefully
+    if (errorInfo.code === "NO_RECOMMENDATIONS") {
+      logger(
+        "warn",
+        `Awaiting data: No valid historical rows found for strategy '${requestedStrategy}'`,
+      );
+    } else {
+      logger("error", "Recommendation API error", error);
+    }
+
     const errorResponse: ApiErrorResponse = {
       error: errorInfo.message,
       code: errorInfo.code,
