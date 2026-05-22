@@ -72,7 +72,8 @@ export function RecommendationCard({ recommendation, loading = false }: Recommen
         <div className="mb-10">
           <h3 className="text-sm font-bold text-slate-800 mb-5 tracking-tight">System Parameters</h3>
           
-          <div className="space-y-6">
+          {/* Scrollable Container Added Here */}
+          <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
             {/* Render Named UI Panels */}
             {sections.map(([sectionName, params]) => (
               <div key={sectionName} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">

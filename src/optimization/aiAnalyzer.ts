@@ -16,12 +16,11 @@ export async function generateAIAnalysis(
     if (!apiKey) {
       throw new AppError(
         "API_KEY_MISSING",
-        "GEMINI_API_KEY is not configured.",
+        "GEMINI_API_KEY is not configured in environment variables.",
         500,
       );
     }
 
-    // Include the unique 'id' so Gemini can map its summaries back to the correct row
     const analysisData = experiments.map((exp) => ({
       id: exp.id,
       date: exp.date,
@@ -48,11 +47,12 @@ export async function generateAIAnalysis(
       
       YOUR TASK:
       1. Determine the absolute best optimal parameter combination.
-      2. CRITICAL REQUIREMENT: Extract EVERY SINGLE parameter found in the historical JSON. Do not omit anything.
-      3. UI ARCHITECT REQUIREMENT: You must group the recommended parameters into exact trading platform UI panels. 
+      2. CRITICAL OPTIMIZATION GOAL: Your primary objective is MAXIMIZING PROFITABILITY AND EXECUTION. You must synthesize the historical data to recommend a parameter set that results in a strong, positive "Expected Session PnL" and a high "Expected Fill Rate". Do not recommend configurations that lead to net losses or zero fills.
+      3. CRITICAL REQUIREMENT: Extract EVERY SINGLE parameter found in the historical JSON. Do not omit anything.
+      4. UI ARCHITECT REQUIREMENT: You must group the recommended parameters into exact trading platform UI panels. 
          - Create logical top-level keys like "Execution & Direction", "Sizing", "Circuit Breaker & Session Risk", "Stop-Loss Exit", "Take-Profit Exit", "CSS Weights", etc.
          - If the strategy has nested phases (like "Phase Gates"), you MUST create nested sub-objects (e.g., "Phase Gates": { "Early Phase": {...}, "Mid Phase": {...} }).
-      4. For EVERY experiment provided in the data, summarize it into a classification (Pass/Fail/Neutral) and a 4-8 word summary.
+      5. For EVERY experiment provided in the data, summarize it into a classification (Pass/Fail/Neutral) and a 4-8 word summary.
       
       Respond ONLY with a valid JSON object strictly matching this format:
       {
