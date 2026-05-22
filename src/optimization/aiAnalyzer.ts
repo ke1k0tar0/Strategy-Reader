@@ -76,28 +76,66 @@ export async function generateAIAnalysis(
         }
       }
     `;
+    // Replace your standard fetch block with this Automatic Retry Loop
+    let response;
+    let retries = 3; // Try up to 3 times
+    let delayMs = 2000; // Start with a 2-second wait if it fails
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          systemInstruction: {
-            parts: [
-              {
-                text: "You evaluate complex data arrays and output strictly valid JSON.",
-              },
-            ],
-          },
-          generationConfig: {
-            temperature: 0.2,
-            responseMimeType: "application/json",
-          },
-        }),
-      },
-    );
+    while (retries > 0) {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            systemInstruction: {
+              parts: [
+                {
+                  text: "You evaluate complex data arrays and output strictly valid JSON.",
+                },
+              ],
+            },
+            generationConfig: {
+              temperature: 0.2,
+              responseMimeType: "application/json",
+            },
+          }),
+        },
+      );
+
+      // If we get a 503 High Demand error, wait and try again
+      if (response.status === 503) {
+        logger(
+          "warn",
+          `Gemini API high demand (503). Retrying in ${delayMs}ms... (${retries - 1} attempts left)`,
+        );
+        retries--;
+        if (retries === 0) break; // Give up after 3 tries
+
+        // Wait for the delay period
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        delayMs *= 2; // Double the wait time for the next attempt (4s, then 8s)
+        continue;
+      }
+
+      // If it's successful or any other error, break the loop
+      break;
+    }
+
+    if (!response || !response.ok) {
+      const errText = response ? await response.text() : "No response";
+      logger("error", "Gemini API call failed", {
+        status: response?.status,
+        error: errText,
+      });
+      throw new AppError(
+        "AI_ERROR",
+        "Failed to retrieve AI analysis. Google's servers are currently overloaded.",
+        500,
+        errText,
+      );
+    }
 
     if (!response.ok) {
       const errText = await response.text();
