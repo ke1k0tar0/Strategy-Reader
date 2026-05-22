@@ -1,5 +1,6 @@
 /**
  * Data loader service
+ * Handles complete data pipeline from sheets to normalized experiments
  */
 
 import { getSheetExperiments } from "@/src/sheets/googleSheets";
@@ -27,36 +28,35 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
         const exp = convertRawRowToExperiment(row, columnMapping, index);
 
         if (exp) {
-          // Attempt to parse the parameter JSON
-          const paramSetStr = String(
-            row[columnMapping["parameterSet"]] || "",
-          ).trim();
+          const paramSetKey = Object.keys(row).find((k) =>
+            k.toLowerCase().includes("parameter"),
+          );
+          const paramSetStr = paramSetKey
+            ? String(row[paramSetKey] || "").trim()
+            : "";
           const paramSet = parseParameterJSON(paramSetStr);
 
-          // We NO LONGER drop the experiment if the JSON is missing/invalid.
-          // We assign whatever we extracted (or an empty object) so the Hypothesis is preserved!
+          // We no longer redact the row if the JSON is missing. We just supply an empty object.
           exp.parameterSet = paramSet || {};
           experiments.push(exp);
         } else {
-          // If exp is null, the Date was completely empty (redacted)
-          errors.push({
-            rowIndex: index + 2,
-            error: "Row redacted: Missing Date assignment",
-          });
+          const isEmpty = Object.values(row).every(
+            (val) => !val || String(val).trim() === "",
+          );
+          if (!isEmpty) {
+            errors.push({
+              rowIndex: index + 2,
+              error: "Row skipped: Missing primary identifiers (Date or Scope)",
+            });
+          }
         }
       } catch (error) {
-        errors.push({
-          rowIndex: index + 2,
-          error: String(error),
-        });
+        errors.push({ rowIndex: index + 2, error: String(error) });
       }
     });
 
     if (errors.length > 0) {
-      logger(
-        "warn",
-        `Failed to parse ${errors.length} rows due to format mismatch`,
-      );
+      logger("warn", `Skipped ${errors.length} incomplete rows`);
     }
 
     if (experiments.length === 0) {
@@ -68,10 +68,14 @@ export async function loadAllExperiments(): Promise<NormalizedExperiment[]> {
       );
     }
 
+    // Score and normalize
     const scored = scoreExperiments(experiments as NormalizedExperiment[]);
     const normalized = scored.map((exp) => normalizeExperiment(exp, exp.score));
 
-    logger("info", `Loaded and normalized ${normalized.length} experiments`);
+    logger(
+      "info",
+      `Loaded and normalized ${normalized.length} valid experiments`,
+    );
     return normalized;
   } catch (error) {
     if (error instanceof AppError) throw error;

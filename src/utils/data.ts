@@ -41,13 +41,13 @@ export function parseJSON<T = Record<string, unknown>>(
     return null;
   }
 }
+
 export function convertRawRowToExperiment(
   row: RawSheetRow,
   columnMapping: Record<string, string>,
   rowIndex: number,
 ): StrategyExperiment | null {
   try {
-    // Dynamic searcher: ignores spaces, case, and special characters (e.g., matches "Top 3 Gate Reasons" with "gatereason")
     const getVal = (searchStr: string) => {
       const target = searchStr.toLowerCase().replace(/[^a-z0-9]/g, "");
       const key = Object.keys(row).find((k) =>
@@ -61,33 +61,23 @@ export function convertRawRowToExperiment(
 
     const date = getVal("date");
     const scope = getVal("scope") || getVal("strategy");
-    const hypothesis = getVal("hypothesis");
-    const change = getVal("change");
-    const stopConditions = getVal("stopcondition");
-    const successMetric = getVal("successmetric");
-    const duration = getVal("duration");
-    const marketConditions = getVal("marketcondition");
-    const topGateReasons = getVal("gatereason");
-    const verdict = getVal("verdict");
 
-    // Notes is specifically optional
-    const notes = getVal("notes");
-
-    // STRICT VALIDATOR: Fast-fail if ANY mandatory column is empty
-    if (
-      !date ||
-      !scope ||
-      !hypothesis ||
-      !change ||
-      !stopConditions ||
-      !successMetric ||
-      !duration ||
-      !marketConditions ||
-      !topGateReasons ||
-      !verdict
-    ) {
+    // Only Date and Scope are strictly fatal. If these are missing, it's not a valid tracker row.
+    if (!date || !scope) {
       return null;
     }
+
+    // Default missing fields to "Not specified" so the row survives and reaches Gemini
+    const hypothesis = getVal("hypothesis") || "Not specified";
+    const change = getVal("change") || "Not specified";
+    const stopConditions = getVal("stopcondition") || "Not specified";
+    const successMetric = getVal("successmetric") || "Not specified";
+    const duration = getVal("duration") || "Not specified";
+    const marketConditions = getVal("marketcondition") || "Not specified";
+    const topGateReasons =
+      getVal("gatereason") || getVal("top3") || "Not specified";
+    const verdict = getVal("verdict") || "Pending";
+    const notes = getVal("notes");
 
     let rawFillsStr = getVal("fills").replace(/%/g, "");
     let rawPnlStr = getVal("pnl");
@@ -106,7 +96,7 @@ export function convertRawRowToExperiment(
     return {
       date,
       scope,
-      parameterSet: {}, // Real parsing happens securely in dataLoader
+      parameterSet: {}, // Parsed in dataLoader
       hypothesis,
       change,
       stopConditions,
