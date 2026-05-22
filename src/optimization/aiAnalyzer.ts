@@ -38,30 +38,30 @@ export async function generateAIAnalysis(
       fills: `${exp.fills}%`,
       notes: exp.notes || undefined,
     }));
+
     const prompt = `
       You are an expert Quantitative Trading AI Optimization Engine.
       Analyze ALL the historical experiment data below for the strategy "${strategyName}".
-      
-      Data includes comprehensive context for each experiment.
       
       Data:
       ${JSON.stringify(analysisData)}
       
       YOUR TASK:
       1. Determine the absolute best optimal parameter combination.
-      2. CRITICAL REQUIREMENT: You MUST extract and output EVERY SINGLE parameter that exists in the historical JSON parameter sets. Do NOT drop, omit, or hide any parameters (e.g., max_notional_usd, specific asset flags, or granular threshold values must all be explicitly included).
-      3. Group all recommended parameters into logical top-level sections for the UI (e.g., "Asset Scope", "Risk Management", "CSS Weights (1H)", "Stop Loss Configuration", "General Parameters").
-      4. For EVERY experiment provided in the data, summarize it into a classification and a 4-8 word summary.
+      2. CRITICAL REQUIREMENT: Extract EVERY SINGLE parameter found in the historical JSON. Do not omit anything.
+      3. UI ARCHITECT REQUIREMENT: You must group the recommended parameters into exact trading platform UI panels. 
+         - Create logical top-level keys like "Execution & Direction", "Sizing", "Circuit Breaker & Session Risk", "Stop-Loss Exit", "Take-Profit Exit", "CSS Weights", etc.
+         - If the strategy has nested phases (like "Phase Gates"), you MUST create nested sub-objects (e.g., "Phase Gates": { "Early Phase": {...}, "Mid Phase": {...} }).
+      4. For EVERY experiment provided in the data, summarize it into a classification (Pass/Fail/Neutral) and a 4-8 word summary.
       
       Respond ONLY with a valid JSON object strictly matching this format:
       {
         "recommendedParameters": {
-          "Section Name 1 (e.g. Asset Scope)": {
-            "param_key": value,
-            "param_key_2": value
-          },
-          "Section Name 2 (e.g. Risk Management)": {
-            "param_key": value
+          "Asset Scope": { "BTC": true, "ETH": true },
+          "Sizing": { "Sizing mode": "Fixed", "Assumed edge": 0.03 },
+          "Phase Gates": {
+             "Early Phase": { "Start offset (sec)": 900, "Min CSS": 0.6 },
+             "Late Phase": { "Start offset (sec)": 3000 }
           }
         },
         "expectedPnL": number,
@@ -71,7 +71,7 @@ export async function generateAIAnalysis(
         "historicalSummaries": {
           "experiment_id_here": {
             "status": "Pass" | "Fail" | "Neutral",
-            "summary": "Extremely concise 4-8 word summary of what happened."
+            "summary": "Extremely concise 4-8 word summary."
           }
         }
       }
