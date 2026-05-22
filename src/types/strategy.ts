@@ -29,9 +29,8 @@ export interface NormalizedExperiment extends StrategyExperiment {
 }
 
 export interface ParameterSet {
-  [key: string]: number | string | boolean;
+  [key: string]: any; // Relaxed to support dynamic nested sections from the AI
 }
-
 export interface ScoringConfig {
   pnlWeight: number;
   fillsWeight: number;

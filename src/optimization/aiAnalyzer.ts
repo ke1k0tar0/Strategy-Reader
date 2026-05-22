@@ -38,21 +38,32 @@ export async function generateAIAnalysis(
       fills: `${exp.fills}%`,
       notes: exp.notes || undefined,
     }));
-
     const prompt = `
       You are an expert Quantitative Trading AI Optimization Engine.
       Analyze ALL the historical experiment data below for the strategy "${strategyName}".
+      
+      Data includes comprehensive context for each experiment.
       
       Data:
       ${JSON.stringify(analysisData)}
       
       YOUR TASK:
       1. Determine the absolute best optimal parameter combination.
-      2. For EVERY experiment provided in the data, read its raw 'verdict', 'notes', and PnL, and summarize it into a strict classification (Pass/Fail/Neutral) and an extremely short 4-to-8 word summary.
+      2. CRITICAL REQUIREMENT: You MUST extract and output EVERY SINGLE parameter that exists in the historical JSON parameter sets. Do NOT drop, omit, or hide any parameters (e.g., max_notional_usd, specific asset flags, or granular threshold values must all be explicitly included).
+      3. Group all recommended parameters into logical top-level sections for the UI (e.g., "Asset Scope", "Risk Management", "CSS Weights (1H)", "Stop Loss Configuration", "General Parameters").
+      4. For EVERY experiment provided in the data, summarize it into a classification and a 4-8 word summary.
       
       Respond ONLY with a valid JSON object strictly matching this format:
       {
-        "recommendedParameters": { "param_key": value },
+        "recommendedParameters": {
+          "Section Name 1 (e.g. Asset Scope)": {
+            "param_key": value,
+            "param_key_2": value
+          },
+          "Section Name 2 (e.g. Risk Management)": {
+            "param_key": value
+          }
+        },
         "expectedPnL": number,
         "expectedFillRate": number,
         "confidence": number,

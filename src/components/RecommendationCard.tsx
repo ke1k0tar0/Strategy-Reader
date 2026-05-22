@@ -13,6 +13,14 @@ export function RecommendationCard({
 }: RecommendationCardProps) {
   if (loading) return null;
 
+  // Defensively separate grouped sections from any loose primitive parameters the AI might drop
+  const sections = Object.entries(recommendation.recommendedParameters).filter(
+    ([_, v]) => typeof v === "object" && v !== null && !Array.isArray(v),
+  );
+  const looseParams = Object.entries(
+    recommendation.recommendedParameters,
+  ).filter(([_, v]) => typeof v !== "object" || v === null || Array.isArray(v));
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="bg-slate-50/50 border-b border-slate-100 p-6 md:p-8">
@@ -45,30 +53,77 @@ export function RecommendationCard({
       </div>
 
       <div className="p-6 md:p-8">
-        <div className="mb-8">
-          <h3 className="text-sm font-bold text-slate-800 mb-4 tracking-tight">
+        <div className="mb-10">
+          <h3 className="text-sm font-bold text-slate-800 mb-5 tracking-tight">
             AI Recommended Parameters
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(recommendation.recommendedParameters).map(
-              ([key, value]) => (
-                <div
-                  key={key}
-                  className="bg-slate-50 border border-slate-100 rounded-xl p-4 transition-colors hover:bg-slate-100"
-                >
-                  <div
-                    className="text-xs font-medium text-slate-500 mb-1 truncate"
-                    title={key}
-                  >
-                    {key}
-                  </div>
-                  <div className="font-mono text-lg font-semibold text-slate-800">
-                    {typeof value === "number"
-                      ? value.toFixed(4).replace(/\.?0+$/, "")
-                      : String(value)}
-                  </div>
+
+          <div className="space-y-6">
+            {/* Render Named Sections */}
+            {sections.map(([sectionName, params]) => (
+              <div
+                key={sectionName}
+                className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
+              >
+                <div className="bg-slate-50/80 border-b border-slate-200 px-5 py-3">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    {sectionName}
+                  </h4>
                 </div>
-              ),
+                <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Object.entries(params as Record<string, any>).map(
+                    ([key, value]) => (
+                      <div
+                        key={key}
+                        className="bg-slate-50/50 border border-slate-100 rounded-xl p-4 transition-colors hover:bg-slate-50"
+                      >
+                        <div
+                          className="text-xs font-medium text-slate-500 mb-1 truncate"
+                          title={key}
+                        >
+                          {key}
+                        </div>
+                        <div className="font-mono text-base font-semibold text-slate-800 break-all">
+                          {typeof value === "number"
+                            ? value.toFixed(4).replace(/\.?0+$/, "")
+                            : String(value)}
+                        </div>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Fallback for un-grouped parameters */}
+            {looseParams.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <div className="bg-slate-50/80 border-b border-slate-200 px-5 py-3">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    General
+                  </h4>
+                </div>
+                <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {looseParams.map(([key, value]) => (
+                    <div
+                      key={key}
+                      className="bg-slate-50/50 border border-slate-100 rounded-xl p-4 transition-colors hover:bg-slate-50"
+                    >
+                      <div
+                        className="text-xs font-medium text-slate-500 mb-1 truncate"
+                        title={key}
+                      >
+                        {key}
+                      </div>
+                      <div className="font-mono text-base font-semibold text-slate-800 break-all">
+                        {typeof value === "number"
+                          ? (value as number).toFixed(4).replace(/\.?0+$/, "")
+                          : String(value)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
