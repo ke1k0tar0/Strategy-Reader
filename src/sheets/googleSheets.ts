@@ -117,8 +117,14 @@ export async function fetchSheetData(): Promise<{
       );
     }
 
-    logger("info", `Fetching Google Sheets data from ${sheetId} / ${range}`);
-
+    // Mask the sheet ID for security in logs
+    const maskedSheetId = sheetId
+      ? `${sheetId.substring(0, 4)}...${sheetId.substring(sheetId.length - 4)}`
+      : "UNKNOWN";
+    logger(
+      "info",
+      `Fetching Google Sheets data from ${maskedSheetId} / ${range}`,
+    );
     try {
       const meta = await sheets.spreadsheets.get({
         spreadsheetId: sheetId,

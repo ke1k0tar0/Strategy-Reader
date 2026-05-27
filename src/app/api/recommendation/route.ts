@@ -93,11 +93,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function OPTIONS(): Promise<NextResponse> {
+  // Only allow requests from your specific domain (fallback to localhost for dev)
+  const allowedOrigin =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
   return NextResponse.json(
     {},
     {
       headers: {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": allowedOrigin,
         "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
       },

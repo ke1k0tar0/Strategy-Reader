@@ -37,10 +37,13 @@ export async function generateAIAnalysis(
       fills: `${exp.fills}%`,
       notes: exp.notes || undefined,
     }));
+    const safeStrategyName = strategyName
+      .replace(/[^a-zA-Z0-9 -]/g, "")
+      .substring(0, 50);
 
     const prompt = `
       You are an expert Quantitative Trading AI Optimization Engine.
-      Analyze ALL the historical experiment data below for the strategy "${strategyName}".
+      Analyze ALL the historical experiment data below for the strategy "${safeStrategyName}".
       
       Data:
       ${JSON.stringify(analysisData)}
@@ -139,15 +142,17 @@ export async function generateAIAnalysis(
 
     if (!response.ok) {
       const errText = await response.text();
+      // Safe: Log the dangerous details only on the secure backend server
       logger("error", "Gemini API call failed", {
         status: response.status,
         error: errText,
       });
+
+      // Safe: Do NOT pass errText back to the AppError. Return a generic message.
       throw new AppError(
         "AI_ERROR",
-        "Failed to retrieve AI analysis.",
+        "Failed to retrieve AI analysis. The upstream AI service is currently unavailable.",
         500,
-        errText,
       );
     }
 
