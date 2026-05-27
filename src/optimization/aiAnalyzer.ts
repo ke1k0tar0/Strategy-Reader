@@ -37,6 +37,8 @@ export async function generateAIAnalysis(
       fills: `${exp.fills}%`,
       notes: exp.notes || undefined,
     }));
+
+    // SANITIZATION: Strip out special characters to prevent AI Prompt Injection
     const safeStrategyName = strategyName
       .replace(/[^a-zA-Z0-9 -]/g, "")
       .substring(0, 50);
@@ -55,7 +57,11 @@ export async function generateAIAnalysis(
       4. UI ARCHITECT REQUIREMENT: You must group the recommended parameters into exact trading platform UI panels. 
          - Create logical top-level keys like "Execution & Direction", "Sizing", "Circuit Breaker & Session Risk", "Stop-Loss Exit", "Take-Profit Exit", "CSS Weights", etc.
          - If the strategy has nested phases (like "Phase Gates"), you MUST create nested sub-objects (e.g., "Phase Gates": { "Early Phase": {...}, "Mid Phase": {...} }).
-      5. For EVERY experiment provided in the data, summarize it into a classification (Pass/Fail/Neutral) and a 4-8 word summary.
+      5. For EVERY experiment provided in the data, determine its classification ("Pass", "Fail", or "Neutral") and a 4-8 word summary.
+         - CRITICAL CLASSIFICATION RULE: Do NOT blindly output "Neutral" just because the verdict field says "Pending". You MUST mathematically evaluate the data.
+         - Classify as "Pass" if the experiment resulted in a positive PnL and an acceptable fill rate.
+         - Classify as "Fail" if the experiment resulted in a negative PnL, 0% fills, or hit a critical stop condition.
+         - Use "Neutral" ONLY if the PnL is exactly 0.00 with no clear directional data.
       
       Respond ONLY with a valid JSON object strictly matching this format:
       {
@@ -79,10 +85,11 @@ export async function generateAIAnalysis(
         }
       }
     `;
-    // Replace your standard fetch block with this Automatic Retry Loop
+
+    // Automatic Retry Loop for Gemini High-Demand (503) Errors
     let response;
-    let retries = 3; // Try up to 3 times
-    let delayMs = 2000; // Start with a 2-second wait if it fails
+    let retries = 3;
+    let delayMs = 2000;
 
     while (retries > 0) {
       response = await fetch(
@@ -100,7 +107,7 @@ export async function generateAIAnalysis(
               ],
             },
             generationConfig: {
-              temperature: 0.2,
+              temperature: 0.2, // Low temperature forces analytical, mathematical rigor
               responseMimeType: "application/json",
             },
           }),
@@ -114,41 +121,25 @@ export async function generateAIAnalysis(
           `Gemini API high demand (503). Retrying in ${delayMs}ms... (${retries - 1} attempts left)`,
         );
         retries--;
-        if (retries === 0) break; // Give up after 3 tries
+        if (retries === 0) break;
 
-        // Wait for the delay period
         await new Promise((resolve) => setTimeout(resolve, delayMs));
-        delayMs *= 2; // Double the wait time for the next attempt (4s, then 8s)
+        delayMs *= 2;
         continue;
       }
 
-      // If it's successful or any other error, break the loop
       break;
     }
 
     if (!response || !response.ok) {
       const errText = response ? await response.text() : "No response";
+      // Safe: Log the dangerous details only on the secure backend server
       logger("error", "Gemini API call failed", {
         status: response?.status,
         error: errText,
       });
-      throw new AppError(
-        "AI_ERROR",
-        "Failed to retrieve AI analysis. Google's servers are currently overloaded.",
-        500,
-        errText,
-      );
-    }
 
-    if (!response.ok) {
-      const errText = await response.text();
-      // Safe: Log the dangerous details only on the secure backend server
-      logger("error", "Gemini API call failed", {
-        status: response.status,
-        error: errText,
-      });
-
-      // Safe: Do NOT pass errText back to the AppError. Return a generic message.
+      // Safe: Do NOT pass errText back to the AppError to prevent security leaks.
       throw new AppError(
         "AI_ERROR",
         "Failed to retrieve AI analysis. The upstream AI service is currently unavailable.",
